@@ -43,13 +43,13 @@ public class Javac {
     }
 
     public boolean compile(List<FileInfo> modifiedJavaFiles) {
-        // preCompile java files with javac into classesDir
-        Iterable<? extends JavaFileObject> modifiedFileObjects = fileManager.getJavaFileObjectsFromStrings(modifiedJavaFiles.stream().map(FileInfo::sourcePath).collect(Collectors.toList()));
+        List<FileInfo> files = modifiedJavaFiles.stream()
+                .filter(file -> !file.originalPath()
+                        .contains("target/generated-sources/annotations")).collect(Collectors.toList());
+        Iterable<? extends JavaFileObject> modifiedFileObjects = fileManager.getJavaFileObjectsFromStrings(files.stream().map(FileInfo::sourcePath).collect(Collectors.toList()));
         //TODO pass-non null for "classes" to properly kick apt?
         //TODO consider a different classpath for this tasks, so as to not interfere with everything else?
-
         CompilationTask task = compiler.getTask(null, fileManager, null, javacOptions, null, modifiedFileObjects);
-
         return task.call();
     }
 }
