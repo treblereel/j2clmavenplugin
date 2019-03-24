@@ -200,6 +200,11 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
                                 && artifact.getVersion().equals(excludedArtifact.getVersion()))
                         .findFirst().orElse(null))
                 .collect(Collectors.toList());
+
+        if (toRemove.isEmpty()) {
+            return toClean;
+        }
+
         final List<String> toReturn = new ArrayList<>();
         toRemove.forEach(artifact -> {
             final String absolutePath = artifact.getFile().getAbsolutePath();
