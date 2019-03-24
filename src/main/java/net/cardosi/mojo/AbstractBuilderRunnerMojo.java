@@ -120,7 +120,12 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
 
     @Override
     public String getJsOutputFile() {
-        return outputJsPathDir + "/app.js";
+        return outputJsPathDir + "/" + outputJsFilename;
+    }
+
+    @Override
+    public String getOutputJsFilename() {
+        return outputJsFilename;
     }
 
     @Override

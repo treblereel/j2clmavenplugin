@@ -29,6 +29,9 @@ public abstract class AbstractJ2CLMojo extends AbstractMojo {
     @Parameter(name = "javacBootClasspath", required = true, defaultValue = "${webapp.libdir}/javac-bootstrap-classpath.jar")
     protected String javacBootClasspath;
 
+    @Parameter(name = "outputJsFilename", required = true)
+    protected String outputJsFilename;
+
     @Parameter(name = "j2clClasspath", /*usage = "specify js archive classpath that won't be " +
                 "transpiled from sources or classpath. If nothing else, should include " +
                 "bootstrap.js.zip and jre.js.zip", */required = true)
