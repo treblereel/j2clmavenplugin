@@ -1,4 +1,4 @@
-package net.cardosi.mojo.artifactitems;
+package org.gwtproject.j2cl.mojo.artifactitems;
 
 import java.io.File;
 import java.io.IOException;

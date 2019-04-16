@@ -1,10 +1,10 @@
-package net.cardosi.mojo;
+package org.gwtproject.j2cl.mojo;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import net.cardosi.mojo.builder.BuildCompiler;
+import org.gwtproject.j2cl.mojo.builder.BuildCompiler;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;

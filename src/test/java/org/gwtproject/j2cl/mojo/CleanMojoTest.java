@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.cardosi.mojo;
+package org.gwtproject.j2cl.mojo;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import static io.takari.maven.testing.TestResources.assertFilesPresent;
 
-public class BuildMojoTest extends AbstractMojoTest {
+public class CleanMojoTest extends AbstractMojoTest {
 
     @Rule
     public final TestResources resources = new TestResources();
@@ -37,15 +37,19 @@ public class BuildMojoTest extends AbstractMojoTest {
 
     @Before
     public void setup() throws IOException {
-        setup(resources.getBasedir("build"));
+        setup(resources.getBasedir("clean"));
     }
 
     @Test
     public void test() throws Exception {
-        assertDirectoriesPresent(target, webappdir,webappLibDir, sourceDir);
-        maven.executeMojo(baseDirFile, "build");
-        String[] expectedFiles = {"jre.jar", "gwt-internal-annotations.jar", "bootstrap.js.zip", "jre.js.zip"};
-        File webappLibDirFile = new File(webappLibDir);
-        assertFilesPresent(webappLibDirFile, expectedFiles);
+        String[] dirsToTest = {intermediateJsPath, generatedClassesDir, outputJsPathDir, classesDir, jsZipCacheDir, outputDirectory};
+        assertDirectoriesPresent(target, webappdir);
+        assertDirectoriesPresent(dirsToTest);
+        for (String dir : dirsToTest) {
+            assertFilesPresent(new File(dir),"/empty.txt");
+        }
+        maven.executeMojo(baseDirFile, "clean");
+        assertDirectoriesNotPresent(dirsToTest);
+        assertDirectoriesPresent(target, webappdir);
     }
 }

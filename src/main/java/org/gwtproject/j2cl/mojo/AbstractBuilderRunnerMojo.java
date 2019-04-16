@@ -1,4 +1,4 @@
-package net.cardosi.mojo;
+package org.gwtproject.j2cl.mojo;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.javascript.jscomp.CompilerOptions;
-import net.cardosi.mojo.options.Gwt3Options;
+import com.google.javascript.jscomp.DependencyOptions;
+import org.gwtproject.j2cl.mojo.options.Gwt3Options;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -21,9 +21,7 @@ import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;
-
-import static net.cardosi.mojo.artifactitems.ArtifactItemUtils.copyArtifactFiles;
-import static net.cardosi.mojo.artifactitems.ArtifactItemUtils.getArtifactFiles;
+import org.gwtproject.j2cl.mojo.artifactitems.ArtifactItemUtils;
 
 /**
  * Abstract class to be extended by BuildMojo/RunMojo mojos
@@ -70,9 +68,9 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
         getLog().info("Start building...");
         try {
             createWorkingDirs();
-            Map<String, File> artifactFiles = getArtifactFiles(artifactItems, repoSystem, repoSession, remoteRepos);
+            Map<String, File> artifactFiles = ArtifactItemUtils.getArtifactFiles(artifactItems, repoSystem, repoSession, remoteRepos);
             final Map<String, File> workingDirs = getWorkingDirs();
-            copyArtifactFiles(artifactFiles, workingDirs.get(outputDirectory));
+            ArtifactItemUtils.copyArtifactFiles(artifactFiles, workingDirs.get(outputDirectory));
             final Set<Artifact> artifacts = project.getArtifacts();
             final List<String> dependencies = artifacts.stream().map(artifact -> artifact.getFile().getPath()).collect(Collectors.toList());
             bytecodeClasspath.addAll(dependencies);
@@ -154,7 +152,7 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
     }
 
     @Override
-    public CompilerOptions.DependencyMode getDependencyMode() {
+    public DependencyOptions.DependencyMode getDependencyMode() {
         return dependencyMode;
     }
 

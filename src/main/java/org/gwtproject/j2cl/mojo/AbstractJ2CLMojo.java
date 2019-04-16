@@ -1,4 +1,4 @@
-package net.cardosi.mojo;
+package org.gwtproject.j2cl.mojo;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.javascript.jscomp.CompilerOptions;
-import net.cardosi.mojo.artifactitems.ArtifactItem;
+import com.google.javascript.jscomp.DependencyOptions;
+import org.gwtproject.j2cl.mojo.artifactitems.ArtifactItem;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -99,17 +99,19 @@ public abstract class AbstractJ2CLMojo extends AbstractMojo {
     // behavior, NONE should be avoided. Default changed to strict.
     @Parameter(
             name = "dependencyMode"/*,
-                usage = "Specifies how the compiler should determine the set and order "
-                        + "of files for a compilation. Options: NONE the compiler will include "
-                        + "all src files in the order listed, STRICT files will be included and "
-                        + "sorted by starting from namespaces or files listed by the "
-                        + "--entry_point flag - files will only be included if they are "
-                        + "referenced by a goog.require or CommonJS require or ES6 import, LOOSE "
-                        + "same as with STRICT but files which do not goog.provide a namespace "
-                        + "and are not modules will be automatically added as "
-                        + "--entry_point entries. "//Defaults to NONE."*/
+                usage = "NONE -- All input files will be included in the compilation in the order they were specified in. "
+                        + "SORT_ONLY -- All input files will be included in the compilation in dependency order. "
+                        + "PRUNE_LEGACY -- Input files that are transitive dependencies of the entry points will be included in the
+                        + "  compilation in dependency order. All other input files will be dropped.
+                        + "<p>In addition to the explicitly defined entry points, moochers (see below) are implicit
+                        + "entry points."
+                        + "PRUNE -- Input files that are transitive dependencies of the entry points will be included in the
+                        + "compilation in dependency order. All other input files will be dropped.
+                        + " <p>In addition to the explicitly defined entry points, moochers (see below) are implicit
+                        + "entry points.
+                        + "//Defaults to NONE."*/
     )
-    protected CompilerOptions.DependencyMode dependencyMode = CompilerOptions.DependencyMode.STRICT;
+    protected DependencyOptions.DependencyMode dependencyMode = DependencyOptions.DependencyMode.NONE;
 
     // j2cl-specific flag
     @Parameter(name = "declareLegacyNamespaces"/*,

@@ -1,4 +1,4 @@
-package net.cardosi.mojo.builder;
+package org.gwtproject.j2cl.mojo.builder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,8 +40,8 @@ import com.google.javascript.jscomp.CommandLineRunner;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.PersistentInputStore;
-import net.cardosi.mojo.options.Gwt3Options;
-import net.cardosi.mojo.tools.Javac;
+import org.gwtproject.j2cl.mojo.options.Gwt3Options;
+import org.gwtproject.j2cl.mojo.tools.Javac;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.maven.project.MavenProject;
 

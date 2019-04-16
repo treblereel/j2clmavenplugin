@@ -1,4 +1,4 @@
-package net.cardosi.mojo.tools;
+package org.gwtproject.j2cl.mojo.tools;
 
 import java.io.File;
 import java.io.IOException;

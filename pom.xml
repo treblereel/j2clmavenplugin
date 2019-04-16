@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>net.cardosi.j2cl</groupId>
+  <groupId>org.treblereel.gwt.j2cl</groupId>
   <artifactId>j2cl-maven-plugin</artifactId>
-  <version>0.7-SNAPSHOT</version>
+  <version>0.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>J2CL Maven Plugin</name>
@@ -27,7 +27,7 @@
     <!-- Builder dependencies versions -->
     <transpiler.version>0.2-SNAPSHOT</transpiler.version>
     <gwt.incompatible.stripper.version>0.2-SNAPSHOT</gwt.incompatible.stripper.version>
-    <closure.compiler.unshaded.version>1.0-SNAPSHOT</closure.compiler.unshaded.version>
+    <closure.compiler.unshaded.version>0.1-SNAPSHOT</closure.compiler.unshaded.version>
     <commons.codec.version>1.11</commons.codec.version>
     <!-- Test -->
     <org.eclipse.sisu.plexus.version>0.3.3</org.eclipse.sisu.plexus.version>
@@ -54,6 +54,13 @@
   <prerequisites>
     <maven>${maven.required.version}</maven>
   </prerequisites>
+
+  <scm>
+    <url>https://github.com/treblereel/j2clmavenplugin</url>
+    <connection>scm:git:git://github.com/treblereel/j2clmavenplugin.git</connection>
+    <developerConnection>scm:git:git@github.com:treblereel/j2clmavenplugin.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
 
   <dependencyManagement>
     <dependencies>
@@ -183,22 +190,6 @@
       <version>${maven.version}</version>
       <scope>provided</scope>
     </dependency>
-    <!-- read Maven project object model files, and assemble inheritence and to retrieve remote models as required.-->
-    <!--<dependency>-->
-      <!--<groupId>org.apache.maven</groupId>-->
-      <!--<artifactId>maven-project</artifactId>-->
-      <!--<version>${maven.project.version}</version>-->
-      <!--<exclusions>-->
-        <!--<exclusion>-->
-          <!--<groupId>org.codehaus.plexus</groupId>-->
-          <!--<artifactId>plexus-container-default</artifactId>-->
-        <!--</exclusion>-->
-        <!--<exclusion>-->
-          <!--<groupId>org.apache.maven</groupId>-->
-          <!--<artifactId>maven-artifact-manager</artifactId>-->
-        <!--</exclusion>-->
-      <!--</exclusions>-->
-    <!--</dependency>-->
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-artifact-transfer</artifactId>
@@ -245,7 +236,7 @@
       <version>${gwt.incompatible.stripper.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.vertispan.javascript</groupId>
+      <groupId>org.treblereel.gwt.javascript</groupId>
       <artifactId>closure-compiler-unshaded</artifactId>
       <version>${closure.compiler.unshaded.version}</version>
       <exclusions>
@@ -362,20 +353,21 @@
     </plugins>
   </build>
 
-  <distributionManagement>
-    <repository>
-      <id>vertispan-releases</id>
-      <name>Vertispan hosted artifacts-releases</name>
-      <url>https://repo.vertispan.com/j2cl</url>
-    </repository>
-    <snapshotRepository>
-      <id>vertispan-snapshots</id>
-      <name>Vertispan hosted artifacts-snapshots</name>
-      <url>https://repo.vertispan.com/j2cl</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <profiles>
+    <profile>
+      <id>parallel-test</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <forkCount>1C</forkCount>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>release</id>
       <build>
@@ -383,7 +375,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>${maven.source.plugin.version}</version>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -396,7 +388,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>${maven.javadoc.plugin.version}</version>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -410,7 +402,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>${maven.gpg.plugin.version}</version>
+            <version>1.6</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -425,6 +417,17 @@
       </build>
     </profile>
   </profiles>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
   <repositories>
     <repository>

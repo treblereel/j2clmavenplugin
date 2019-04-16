@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.cardosi.mojo;
+package org.gwtproject.j2cl.mojo;
 
 import java.io.File;
 import java.util.ArrayList;

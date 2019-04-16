@@ -1,9 +1,10 @@
-package net.cardosi.mojo.options;
+package org.gwtproject.j2cl.mojo.options;
 
 import java.io.File;
 import java.util.List;
 
 import com.google.javascript.jscomp.CompilerOptions;
+import com.google.javascript.jscomp.DependencyOptions;
 
 public interface Gwt3Options {
 
@@ -35,7 +36,7 @@ public interface Gwt3Options {
 
     String getCompilationLevel();
 
-    CompilerOptions.DependencyMode getDependencyMode();
+    DependencyOptions.DependencyMode getDependencyMode();
 
     List<String> getJ2clClasspath();
 

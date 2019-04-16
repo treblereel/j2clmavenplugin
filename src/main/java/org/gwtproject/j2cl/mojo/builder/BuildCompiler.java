@@ -1,4 +1,4 @@
-package net.cardosi.mojo.builder;
+package org.gwtproject.j2cl.mojo.builder;
 
 import java.io.File;
 import java.nio.file.attribute.FileTime;
@@ -8,7 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.j2cl.frontend.FrontendUtils;
-import net.cardosi.mojo.options.Gwt3Options;
+import org.gwtproject.j2cl.mojo.options.Gwt3Options;
 import org.apache.maven.project.MavenProject;
 
 /**
