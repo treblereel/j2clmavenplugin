@@ -44,6 +44,8 @@ public interface Gwt3Options {
 
     String getJsZipCacheDir();
 
+    CompilerOptions getCompilerOptions();
+
     String getOutputJsPathDir();
 
     String getOutputJsFilename();

@@ -39,6 +39,7 @@ import com.google.j2cl.transpiler.J2clTranspilerOptions;
 import com.google.javascript.jscomp.CommandLineRunner;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.Compiler;
+import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.PersistentInputStore;
 import org.gwtproject.j2cl.mojo.options.Gwt3Options;
 import org.gwtproject.j2cl.mojo.tools.Javac;
@@ -123,6 +124,13 @@ public class SingleCompiler {
                 "--dependency_mode", options.getDependencyMode().name(),// force STRICT mode so that the compiler at least orders the inputs
                 "--language_out", options.getLanguageOut()
         ));
+
+        //baseClosureArgs.add("--create_source_map");
+        //baseClosureArgs.add(options.getOutputJsPathDir()+"/app.js.map");
+
+        //baseClosureArgs.add("--source_map_location_mapping");
+        //baseClosureArgs.add(options.getOutputJsPathDir()+"/sources");
+
         if (compilationLevel == CompilationLevel.BUNDLE) {
             // support BUNDLE mode, with no remote fetching for dependencies)
             baseClosureArgs.add("--define");
@@ -161,6 +169,8 @@ public class SingleCompiler {
         //pre-transpile all dependency sources to our cache dir, add those cached items to closure args
         List<String> transpiledDependencies = progressivelyHandleDependencies(orderedClasspath, baseJ2clArgs, persistentInputStore, options.getBytecodeClasspath(), targetPath);
         baseClosureArgs.addAll(transpiledDependencies);
+
+        System.out.println("baseClosureArgs " + baseClosureArgs);
     }
 
     public static void preCompile(List<FrontendUtils.FileInfo> modifiedJavaFiles, File tempDir) throws Exception {
@@ -580,6 +590,18 @@ public class SingleCompiler {
 
         // BuildMojo a new compiler for this run, but share the cached js ASTs
         Compiler jsCompiler = new Compiler(System.err);
+
+        //System.out.println("getCompilerOptions " + options.getCompilerOptions());
+
+        CompilerOptions o = new CompilerOptions();
+        o.setApplyInputSourceMaps(true);
+
+        //System.out.println("equals " + options.getCompilerOptions().equals(o));
+
+        //System.out.println("getCompilerOptions 2 " + options.getCompilerOptions());
+
+
+        jsCompiler.initOptions(o);
         jsCompiler.setPersistentInputStore(persistentInputStore);
 
         // sanity check args
