@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DependencyOptions;
 import org.gwtproject.j2cl.mojo.options.Gwt3Options;
 import org.apache.maven.artifact.Artifact;
@@ -170,6 +171,15 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
     public String getJsZipCacheDir() {
         return jsZipCacheDir;
     }
+
+    @Override
+    public CompilerOptions getCompilerOptions() {
+        CompilerOptions options = new CompilerOptions();
+        options.setApplyInputSourceMaps(true);
+        return options;
+    }
+
+
 
     @Override
     public String getOutputJsPathDir() {
