@@ -591,17 +591,6 @@ public class SingleCompiler {
         // BuildMojo a new compiler for this run, but share the cached js ASTs
         Compiler jsCompiler = new Compiler(System.err);
 
-        //System.out.println("getCompilerOptions " + options.getCompilerOptions());
-
-        CompilerOptions o = new CompilerOptions();
-        o.setApplyInputSourceMaps(true);
-
-        //System.out.println("equals " + options.getCompilerOptions().equals(o));
-
-        //System.out.println("getCompilerOptions 2 " + options.getCompilerOptions());
-
-
-        jsCompiler.initOptions(o);
         jsCompiler.setPersistentInputStore(persistentInputStore);
 
         // sanity check args
@@ -613,9 +602,10 @@ public class SingleCompiler {
         // for each file in the updated dir
         long timestamp = System.currentTimeMillis();
         Files.find(Paths.get(updatedJsDirectories), Integer.MAX_VALUE, (path, attrs) -> jsMatcher.matches(path)).forEach((Path path) -> {
-            // add updated JS file to the input store with timestamp instead of digest for now
-            persistentInputStore.addInput(path.toString(), timestamp + "");
+            // add updated JS file to the input store with a hash instead as a digest for now
+            persistentInputStore.addInput(path.toString(), hash(path.toFile()));
         });
+
         //TODO how do we handle deleted files? If they are truly deleted, nothing should reference them, and the module resolution should shake them out, at only the cost of a little memory?
 
         jscompRunner.run();
