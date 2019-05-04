@@ -49,4 +49,6 @@ public interface Gwt3Options {
     String getOutputJsPathDir();
 
     String getOutputJsFilename();
+
+    boolean getRecompileIfFilesChanged();
 }

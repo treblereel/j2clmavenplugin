@@ -173,6 +173,12 @@ public abstract class AbstractBuilderRunnerMojo extends AbstractJ2CLMojo impleme
     }
 
     @Override
+    public boolean getRecompileIfFilesChanged(){
+        return recompileIfFilesChanged;
+    }
+
+
+    @Override
     public CompilerOptions getCompilerOptions() {
         CompilerOptions options = new CompilerOptions();
         options.setApplyInputSourceMaps(true);
