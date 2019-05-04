@@ -155,6 +155,9 @@ public abstract class AbstractJ2CLMojo extends AbstractMojo {
     @Parameter(name = "excludedArtifacts")
     protected List<ArtifactItem> excludedArtifacts = new ArrayList<>();
 
+    @Parameter(name = "recompileIfFilesChanged")
+    protected boolean recompileIfFilesChanged = true;
+
     protected Map<String, File> getWorkingDirs() {
         Map<String, File> toReturn = new HashMap<>();
         getLog().info("targetPath " + targetPath);
