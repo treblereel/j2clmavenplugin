@@ -24,25 +24,31 @@ To test it:
 use snapshot repo:
 
 1 download archetype:
+```console
 mvn dependency:get -Dartifact=org.treblereel.gwt.j2cl:j2cl-maven-plugin:0.1-SNAPSHOT -DremoteRepositories=sonatype-snapshots::::https://oss.sonatype.org/content/repositories/snapshots
+```
 
 2 generate simple j2cl application
+```console
 mvn archetype:generate -DarchetypeGroupId=org.treblereel.gwt.j2cl -DarchetypeArtifactId=j2cl-maven-plugin -DarchetypeVersion=0.1-SNAPSHOT
+```
 
-3 to run dev mode:
-mvn package -Pdevmode
+to run dev mode:
+```console
+mvn clean package -Pdevmode
+```
 
-4 build war 
-mvn package -build
-
+build war 
+```console
+mvn clean package -build
+```
 
 build local:
 
-1 clone https://github.com/gitgabrio/connected
-
-2 switch to branch j2cl-mavenplugin
-
-3 issue mvn package -Pdevmode
+```console
+git clone clone https://github.com/treblereel/j2clmavenplugin.git
+mvn clean install -DskipTests
+```
 
 The connected project has been modified so that
 
