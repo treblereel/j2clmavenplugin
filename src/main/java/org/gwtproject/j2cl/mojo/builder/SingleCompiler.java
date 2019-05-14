@@ -169,8 +169,6 @@ public class SingleCompiler {
         //pre-transpile all dependency sources to our cache dir, add those cached items to closure args
         List<String> transpiledDependencies = progressivelyHandleDependencies(orderedClasspath, baseJ2clArgs, persistentInputStore, options.getBytecodeClasspath(), targetPath);
         baseClosureArgs.addAll(transpiledDependencies);
-
-        System.out.println("baseClosureArgs " + baseClosureArgs);
     }
 
     public static void preCompile(List<FrontendUtils.FileInfo> modifiedJavaFiles, File tempDir) throws Exception {
