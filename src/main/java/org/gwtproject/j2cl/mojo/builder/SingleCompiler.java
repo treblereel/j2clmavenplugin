@@ -102,6 +102,7 @@ public class SingleCompiler {
         for (String path : options.getBytecodeClasspath()) {
             orderedClasspath.add(0, new File(path));
         }
+        orderedClasspath.add(new File("src/main/java/"));
 
         javac = new Javac(generatedClassesPath, orderedClasspath, classesDirFile, options.getBootstrapClasspath());
 
