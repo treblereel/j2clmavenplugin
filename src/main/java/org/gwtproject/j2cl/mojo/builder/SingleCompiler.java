@@ -30,8 +30,8 @@ import java.util.zip.ZipFile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.j2cl.common.FrontendUtils;
 import com.google.j2cl.common.Problems;
-import com.google.j2cl.frontend.FrontendUtils;
 import com.google.j2cl.generator.NativeJavaScriptFile;
 import com.google.j2cl.tools.gwtincompatible.JavaPreprocessor;
 import com.google.j2cl.transpiler.J2clTranspiler;

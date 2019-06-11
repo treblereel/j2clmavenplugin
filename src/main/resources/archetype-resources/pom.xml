@@ -11,7 +11,7 @@
   <properties>
     <webappdir>${project.build.directory}/webapp</webappdir>
     <webapp.libdir>${webappdir}/WEB-INF/lib</webapp.libdir>
-    <j2cl.maven.plugin.version>0.1-SNAPSHOT</j2cl.maven.plugin.version>
+    <j2cl.maven.plugin.version>0.1.1-SNAPSHOT</j2cl.maven.plugin.version>
     <maven.properties.plugin>1.0.0</maven.properties.plugin>
   </properties>
 
@@ -373,7 +373,7 @@
                     <artifactItem>
                       <groupId>com.vertispan.j2cl</groupId>
                       <artifactId>jre</artifactId>
-                      <version>0.2-SNAPSHOT</version>
+                      <version>0.3-SNAPSHOT</version>
                       <classifier>jszip</classifier>
                       <type>zip</type>
                       <destFileName>jre.js.zip</destFileName>
@@ -381,19 +381,19 @@
                     <artifactItem>
                       <groupId>com.vertispan.j2cl</groupId>
                       <artifactId>jre</artifactId>
-                      <version>0.2-SNAPSHOT</version>
+                      <version>0.3-SNAPSHOT</version>
                       <destFileName>jre.jar</destFileName>
                     </artifactItem>
                     <artifactItem>
                       <groupId>com.vertispan.j2cl</groupId>
                       <artifactId>gwt-internal-annotations</artifactId>
-                      <version>0.2-SNAPSHOT</version>
+                      <version>0.3-SNAPSHOT</version>
                       <destFileName>gwt-internal-annotations.jar</destFileName>
                     </artifactItem>
                     <artifactItem>
                       <groupId>com.vertispan.j2cl</groupId>
                       <artifactId>bootstrap</artifactId>
-                      <version>0.2-SNAPSHOT</version>
+                      <version>0.3-SNAPSHOT</version>
                       <classifier>jszip</classifier>
                       <type>zip</type>
                       <destFileName>bootstrap.js.zip</destFileName>
@@ -401,7 +401,7 @@
                     <artifactItem>
                       <groupId>com.vertispan.j2cl</groupId>
                       <artifactId>javac-bootstrap-classpath</artifactId>
-                      <version>0.2-SNAPSHOT</version>
+                      <version>0.3-SNAPSHOT</version>
                       <destFileName>javac-bootstrap-classpath.jar</destFileName>
                     </artifactItem>
                   </artifactItems>

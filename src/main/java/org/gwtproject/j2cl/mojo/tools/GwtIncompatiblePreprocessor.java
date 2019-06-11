@@ -12,9 +12,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.j2cl.common.FrontendUtils;
 import com.google.j2cl.common.Problems;
-import com.google.j2cl.frontend.FrontendUtils;
-import com.google.j2cl.frontend.FrontendUtils.FileInfo;
 import com.google.j2cl.tools.gwtincompatible.JavaPreprocessor;
 
 /**
@@ -31,10 +30,10 @@ public class GwtIncompatiblePreprocessor {
         }
     }
 
-    public List<FileInfo> preprocess(List<FileInfo> unprocessedFiles) throws IOException {
+    public List<FrontendUtils.FileInfo> preprocess(List<FrontendUtils.FileInfo> unprocessedFiles) throws IOException {
         Problems problems = new Problems();
 
-        List<FileInfo> result = new ArrayList<>();
+        List<FrontendUtils.FileInfo> result = new ArrayList<>();
         File processed = File.createTempFile("preprocessed", ".srcjar");
         try (FileSystem out = FrontendUtils.initZipOutput(processed.getAbsolutePath(), new Problems())) {
 
@@ -55,7 +54,7 @@ public class GwtIncompatiblePreprocessor {
 
                     Files.createDirectories(targetPath.getParent());
                     Files.copy(file, targetPath);
-                    result.add(FileInfo.create(targetPath.toString(), targetPath.toString()));
+                    result.add(FrontendUtils.FileInfo.create(targetPath.toString(), targetPath.toString()));
 
                     return FileVisitResult.CONTINUE;
                 }
