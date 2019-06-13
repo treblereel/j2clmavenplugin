@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.google.j2cl.frontend.FrontendUtils;
+import com.google.j2cl.common.FrontendUtils;
 import org.gwtproject.j2cl.mojo.options.Gwt3Options;
 import org.apache.maven.project.MavenProject;
 

@@ -14,7 +14,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
-import com.google.j2cl.frontend.FrontendUtils.FileInfo;
+import com.google.j2cl.common.FrontendUtils;
 
 /**
  * Runs javac. Set this up with the appropriate classpath, directory for generated sources to be written,
@@ -42,11 +42,11 @@ public class Javac {
         fileManager.setLocation(StandardLocation.CLASS_OUTPUT, Collections.singleton(classesDirFile));
     }
 
-    public boolean compile(List<FileInfo> modifiedJavaFiles) {
-        List<FileInfo> files = modifiedJavaFiles.stream()
+    public boolean compile(List<FrontendUtils.FileInfo> modifiedJavaFiles) {
+        List<FrontendUtils.FileInfo> files = modifiedJavaFiles.stream()
                 .filter(file -> !file.originalPath()
                         .contains("target/generated-sources/annotations")).collect(Collectors.toList());
-        Iterable<? extends JavaFileObject> modifiedFileObjects = fileManager.getJavaFileObjectsFromStrings(files.stream().map(FileInfo::sourcePath).collect(Collectors.toList()));
+        Iterable<? extends JavaFileObject> modifiedFileObjects = fileManager.getJavaFileObjectsFromStrings(files.stream().map(FrontendUtils.FileInfo::sourcePath).collect(Collectors.toList()));
         //TODO pass-non null for "classes" to properly kick apt?
         //TODO consider a different classpath for this tasks, so as to not interfere with everything else?
         CompilationTask task = compiler.getTask(null, fileManager, null, javacOptions, null, modifiedFileObjects);
