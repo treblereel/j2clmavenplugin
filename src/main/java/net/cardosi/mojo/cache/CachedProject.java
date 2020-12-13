@@ -8,6 +8,7 @@ import com.google.j2cl.transpiler.incremental.ChangeSet;
 import com.google.j2cl.transpiler.incremental.TypeGraphStore;
 import com.google.j2cl.transpiler.incremental.TypeInfo;
 import com.google.javascript.jscomp.*;
+import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
 import net.cardosi.mojo.ClosureBuildConfiguration;
 import net.cardosi.mojo.Hash;
 import net.cardosi.mojo.tools.*;
@@ -384,6 +385,8 @@ public class CachedProject {
 
             CompilationLevel compilationLevel = CompilationLevel.fromString(config.getCompilationLevel());
 
+            LanguageMode languageOut = LanguageMode.fromString(config.getLanguageOut());
+
             //TODO pick another location if sourcemaps aren't going to be used
 
             File sources;
@@ -427,6 +430,7 @@ public class CachedProject {
             boolean success = closureCompiler.compile(
                     compilationLevel,
                     config.getDependencyMode(),
+                    languageOut,
                     sources,
                     diskCache.getExtraJsZips(),
                     config.getEntrypoint(),
@@ -482,6 +486,7 @@ public class CachedProject {
         boolean success = closureCompiler.compile(
                 CompilationLevel.BUNDLE,
                 DependencyOptions.DependencyMode.SORT_ONLY,
+                LanguageMode.NO_TRANSPILE,
                 null,
                 diskCache.getExtraJsZips(),
                 Collections.emptyList(),
@@ -655,6 +660,7 @@ public class CachedProject {
             boolean success = closureCompiler.compile(
                     CompilationLevel.BUNDLE,
                     DependencyOptions.DependencyMode.SORT_ONLY,
+                    LanguageMode.NO_TRANSPILE,
                     sources,
                     Collections.emptyList(),
                     Collections.emptyList(),
