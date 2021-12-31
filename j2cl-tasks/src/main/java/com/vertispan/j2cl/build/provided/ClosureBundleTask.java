@@ -4,6 +4,7 @@ import com.google.auto.service.AutoService;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DependencyOptions;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.*;
 import io.methvin.watcher.hashing.Murmur3F;
 import com.vertispan.j2cl.tools.Closure;
@@ -43,12 +44,12 @@ public class ClosureBundleTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService buildService) {
         // TODO filter to just JS and sourcemaps? probably not required unless we also get sources
         //      from the actual input source instead of copying it along each step
         List<Input> js = Stream.of(
-                input(project, OutputTypes.TRANSPILED_JS),
-                input(project, OutputTypes.BYTECODE)
+                input(project, OutputTypes.TRANSPILED_JS, buildService),
+                input(project, OutputTypes.BYTECODE, buildService)
         )
                 .map(i -> i.filter(ClosureTask.PLAIN_JS_SOURCES))
                 .collect(Collectors.toList());

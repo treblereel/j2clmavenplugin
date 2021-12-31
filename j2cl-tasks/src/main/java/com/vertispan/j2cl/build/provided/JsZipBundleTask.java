@@ -4,6 +4,7 @@ import com.google.auto.service.AutoService;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DependencyOptions;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.Config;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.build.task.TaskFactory;
@@ -39,7 +40,7 @@ public class JsZipBundleTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService buildService) {
         // we actually ignore project here, and just read from config
         List<File> extraJsZips = config.getExtraJsZips();
         return context -> {

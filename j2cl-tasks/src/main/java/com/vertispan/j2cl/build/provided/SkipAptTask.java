@@ -1,9 +1,7 @@
 package com.vertispan.j2cl.build.provided;
 
 import com.google.auto.service.AutoService;
-import com.vertispan.j2cl.build.task.Config;
 import com.vertispan.j2cl.build.task.OutputTypes;
-import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.build.task.TaskContext;
 import com.vertispan.j2cl.build.task.TaskFactory;
 

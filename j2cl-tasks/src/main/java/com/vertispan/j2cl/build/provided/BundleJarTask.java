@@ -3,6 +3,7 @@ package com.vertispan.j2cl.build.provided;
 import com.google.auto.service.AutoService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.*;
 import org.apache.commons.io.FileUtils;
 
@@ -42,13 +43,13 @@ public class BundleJarTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService buildService) {
         List<Input> jsSources = Stream
                 .concat(
                         scope(project.getDependencies(), Dependency.Scope.RUNTIME)
                                 .stream()
-                                .map(inputs(OutputTypes.BUNDLED_JS)),
-                        Stream.of(input(project, OutputTypes.BUNDLED_JS))
+                                .map(inputs(OutputTypes.BUNDLED_JS, buildService)),
+                        Stream.of(input(project, OutputTypes.BUNDLED_JS, buildService))
                 )
                 .map(i -> i.filter(BUNDLE_JS))
                 .collect(Collectors.toList());
@@ -71,7 +72,7 @@ public class BundleJarTask extends TaskFactory {
         }
 
         //cheaty, but lets us cache
-        Input jszip = input(project, JSZIP_BUNDLE_OUTPUT_TYPE);
+        Input jszip = input(project, JSZIP_BUNDLE_OUTPUT_TYPE, buildService);
 
         File initialScriptFile = config.getWebappDirectory().resolve(config.getInitialScriptFilename()).toFile();
         Map<String, Object> defines = new LinkedHashMap<>(config.getDefines());
@@ -82,7 +83,7 @@ public class BundleJarTask extends TaskFactory {
                 )
                 // Only need to consider the original inputs and generated sources,
                 // J2CL won't contribute this kind of sources
-                .map(p -> input(p, OutputTypes.BYTECODE).filter(COPIED_OUTPUT))
+                .map(p -> input(p, OutputTypes.BYTECODE, buildService).filter(COPIED_OUTPUT))
                 .collect(Collectors.toList());
 
         return new FinalOutputTask() {
@@ -92,6 +93,7 @@ public class BundleJarTask extends TaskFactory {
                 // since we already have to copy to output, we won't do it a second time.
                 // Note that if we have BundleJarTask and ClosureTask both feed to an "actual final task" this assumption
                 // will not be true anymore
+                System.out.println("bundle jar");
             }
 
             @Override
@@ -100,7 +102,13 @@ public class BundleJarTask extends TaskFactory {
                 // cachable task has already finished, and until we return it isn't possible for
                 // a new compile to start
 
+                if (Files.isDirectory(initialScriptFile.getParentFile().toPath())) {
+                    FileUtils.deleteDirectory(initialScriptFile.getParentFile());
+                }
+
                 for (Path dir : Stream.concat(Stream.of(jszip), jsSources.stream()).map(Input::getParentPaths).flatMap(Collection::stream).collect(Collectors.toSet())) {
+                    System.out.println("dir1: " + dir.toAbsolutePath());
+                    System.out.println("dir2: " + initialScriptFile.getParentFile().getAbsolutePath());
                     FileUtils.copyDirectory(dir.toFile(), initialScriptFile.getParentFile());
                 }
 

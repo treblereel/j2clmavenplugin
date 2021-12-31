@@ -108,6 +108,7 @@
     <commons.compress.version>1.21</commons.compress.version>
     <google.turbine.version>v20220503-SNAPSHOT</google.turbine.version>
     <slf4j.api.version>1.7.5</slf4j.api.version>
+    <jspecify.version>0.2.0</jspecify.version>
 
     <!-- Test goal -->
     <selenium.version>3.141.59</selenium.version>
@@ -190,6 +191,24 @@
       </dependency>
 
       <dependency>
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>${jspecify.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons.codec.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons.io.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.maven.resolver</groupId>
         <artifactId>maven-resolver-api</artifactId>
         <version>${maven.resolver.version}</version>
@@ -222,16 +241,6 @@
             <artifactId>gson</artifactId>
           </exclusion>
         </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>commons-codec</groupId>
-        <artifactId>commons-codec</artifactId>
-        <version>${commons.codec.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-        <version>${commons.io.version}</version>
       </dependency>
 
       <dependency>
