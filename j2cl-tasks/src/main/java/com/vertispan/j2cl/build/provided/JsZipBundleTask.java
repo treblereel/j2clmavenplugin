@@ -51,6 +51,7 @@ public class JsZipBundleTask extends TaskFactory {
                     Collections.emptyList(),
                     Collections.emptyMap(),
                     Collections.emptyList(),
+                    config.getTranslationFiles(),
                     null,
                     true,
                     true,

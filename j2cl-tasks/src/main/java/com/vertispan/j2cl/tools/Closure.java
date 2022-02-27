@@ -53,6 +53,7 @@ public class Closure {
             List<String> entrypoints,
             Map<String, String> defines,
             Collection<String> externFiles,
+            Collection<String> translationFiles,
             PersistentInputStore persistentInputStore,
             boolean exportTestFunctions,
             boolean checkAssertions,
@@ -110,6 +111,10 @@ public class Closure {
         for (String extern : externFiles) {
             jscompArgs.add("--externs");
             jscompArgs.add(extern);
+        }
+
+        for(String s : translationFiles) {
+            System.out.println("FF " + s);
         }
 
         jscompArgs.add("--compilation_level");

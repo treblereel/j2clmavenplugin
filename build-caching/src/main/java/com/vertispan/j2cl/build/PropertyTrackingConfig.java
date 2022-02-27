@@ -142,6 +142,12 @@ public class PropertyTrackingConfig implements Config {
     }
 
     @Override
+    public Collection<String> getTranslationFiles() {
+        //TODO these are files, need to be hashed, or treated as inputs instead?
+        return Collections.emptySet();
+    }
+
+    @Override
     public boolean getCheckAssertions() {
         return Boolean.parseBoolean(getString("checkAssertions"));
     }

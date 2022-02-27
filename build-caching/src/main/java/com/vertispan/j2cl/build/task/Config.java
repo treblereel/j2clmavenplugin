@@ -23,6 +23,8 @@ public interface Config {
 
     Collection<String> getExterns();
 
+    Collection<String> getTranslationFiles();
+
     boolean getCheckAssertions();
 
     boolean getRewritePolyfills();
