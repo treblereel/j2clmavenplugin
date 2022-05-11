@@ -8,12 +8,17 @@ import com.google.turbine.diag.TurbineError;
 import com.google.turbine.main.Main;
 import com.google.turbine.options.LanguageVersion;
 import com.google.turbine.options.TurbineOptions;
+import com.vertispan.j2cl.build.BuildService;
+import com.vertispan.j2cl.build.incremental.BuildMapBuilder;
 import com.vertispan.j2cl.build.task.Config;
 import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.Input;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.build.task.TaskFactory;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -32,6 +37,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,6 +47,7 @@ import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_BYTECODE;
 
 @AutoService(TaskFactory.class)
 public class TurbineTask extends TaskFactory {
+
 
     public static final PathMatcher JAVA_SOURCES = withSuffix(".java");
 
@@ -59,14 +67,15 @@ public class TurbineTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService service) {
         // emits only stripped bytecode, so we're not worried about anything other than .java files to compile and .class on the classpath
-        Input ownSources = input(project, OutputTypes.STRIPPED_SOURCES).filter(JAVA_SOURCES);
+        Input ownSources = input(project, OutputTypes.STRIPPED_SOURCES, service).filter(JAVA_SOURCES);
 
         List<File> extraClasspath = config.getExtraClasspath();
 
+        boolean incremental = config.getIncremental();
         List<Input> compileClasspath = scope(project.getDependencies(), Dependency.Scope.COMPILE).stream()
-                .map(p -> input(p, OutputTypes.STRIPPED_BYTECODE_HEADERS))
+                .map(p -> input(p, OutputTypes.STRIPPED_BYTECODE_HEADERS, service))
                 .map(input -> input.filter(JAVA_BYTECODE))
                 .collect(Collectors.toList());
 
@@ -80,6 +89,8 @@ public class TurbineTask extends TaskFactory {
 
             File resultFolder = context.outputPath().toFile();
             File output = new File(resultFolder, "output.jar");
+
+            Input myOwnByteCode = input(project, OutputTypes.STRIPPED_BYTECODE_HEADERS, service).filter(JAVA_BYTECODE);
 
             List<String> sources = ownSources.getFilesAndHashes()
                     .stream()
@@ -103,10 +114,41 @@ public class TurbineTask extends TaskFactory {
                 //ohhhh apt is in maven reactor
                 System.out.println(e.getMessage());
             }
+
+            if(incremental) {
+
+                Input temp = input(project, OutputTypes.TRANSPILED_JS, service);
+
+                service.addStrippedSourcesPath((com.vertispan.j2cl.build.Project) project, context.outputPath());
+
+                BuildMapBuilder builder = new BuildMapBuilder(context.outputPath());
+                String jarFileName = output.toString();
+
+                JarFile jar = new JarFile(output);
+                ClassPool pool = ClassPool.getDefault();
+                try{
+                    pool.insertClassPath(jarFileName);
+
+                    jar.stream().map(JarEntry::getName).forEach(name -> {
+                        if(name.endsWith(".class") && !name.startsWith("META-INF")) {
+                            String className = name.replace(".class", "").replace("/", ".");
+                            try {
+                                CtClass clazz = pool.get(className);
+                                builder.addClass(clazz);
+                            } catch (NotFoundException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+
+                } catch (NotFoundException e) {
+                    System.out.println("error loading jar!!");
+                }
+            }
         };
     }
 
-    public void extractJar(String zipFilePath, String extractDirectory) {
+    private void extractJar(String zipFilePath, String extractDirectory) {
         InputStream inputStream;
         try {
             Path filePath = Paths.get(zipFilePath);

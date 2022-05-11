@@ -38,7 +38,7 @@ public class JavacTask extends TaskFactory {
 
     @Override
     public Task resolve(Project project, Config config, BuildService buildService) {
-        boolean incremental = true;
+        boolean incremental = config.getIncremental();
         // emits only stripped bytecode, so we're not worried about anything other than .java files to compile and .class on the classpath
         Input ownSources = input(project, OutputTypes.STRIPPED_SOURCES, buildService).filter(JAVA_SOURCES);
 

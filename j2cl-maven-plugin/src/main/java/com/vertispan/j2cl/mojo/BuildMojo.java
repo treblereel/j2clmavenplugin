@@ -252,4 +252,10 @@ public class BuildMojo extends AbstractBuildMojo {
         }
     }
 
+    /**
+     * True to enable experimental incremental mode.
+     */
+    @Parameter(defaultValue = "false")
+    protected boolean incremental;
+
 }

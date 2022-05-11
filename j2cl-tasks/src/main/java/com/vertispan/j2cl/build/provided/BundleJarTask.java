@@ -107,8 +107,6 @@ public class BundleJarTask extends TaskFactory {
                 }
 
                 for (Path dir : Stream.concat(Stream.of(jszip), jsSources.stream()).map(Input::getParentPaths).flatMap(Collection::stream).collect(Collectors.toSet())) {
-                    System.out.println("dir1: " + dir.toAbsolutePath());
-                    System.out.println("dir2: " + initialScriptFile.getParentFile().getAbsolutePath());
                     FileUtils.copyDirectory(dir.toFile(), initialScriptFile.getParentFile());
                 }
 

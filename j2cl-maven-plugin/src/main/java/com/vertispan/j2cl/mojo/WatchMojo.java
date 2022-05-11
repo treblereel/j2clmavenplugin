@@ -287,4 +287,10 @@ public class WatchMojo extends AbstractBuildMojo {
     protected boolean shouldCompileBuild() {
         return true;
     }
+
+    /**
+     * True to enable experimental incremental mode.
+     */
+    @Parameter(defaultValue = "false")
+    protected boolean incremental;
 }

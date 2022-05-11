@@ -98,7 +98,6 @@ public class WatchService {
                                 Map<Path, DiskCache.CacheEntry> deletedFiles) {
         Path projPath = buildService.getDiskCache().cacheDir.toPath().resolve(project.getKey().replaceAll("[^\\-_a-zA-Z0-9.]", "-"));
         Path filesDat = projPath.resolve("files.dat");
-
         boolean putAll = true;
         try {
             File file;

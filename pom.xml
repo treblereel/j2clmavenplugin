@@ -74,7 +74,9 @@
     <module>build-caching</module>
     <module>j2cl-tasks</module>
     <module>j2cl-maven-plugin</module>
+<!--
     <module>j2cl-archetypes</module>
+-->
   </modules>
 
   <properties>
@@ -87,6 +89,11 @@
     <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
 
     <!-- Builder dependencies versions -->
+
+<!--
+    <j2cl.version>0.10mdp-SNAPSHOT</j2cl.version>
+-->
+
     <j2cl.version>0.10.0-3c97afeac</j2cl.version>
     <closure.compiler.unshaded.version>v20220502-1</closure.compiler.unshaded.version>
     <commons.codec.version>1.11</commons.codec.version>
