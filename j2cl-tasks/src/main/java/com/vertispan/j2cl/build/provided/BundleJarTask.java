@@ -3,6 +3,7 @@ package com.vertispan.j2cl.build.provided;
 import com.google.auto.service.AutoService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.*;
 import org.apache.commons.io.FileUtils;
 
@@ -41,7 +42,7 @@ public class BundleJarTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService buildService) {
         List<Input> jsSources = Stream
                 .concat(
                         scope(project.getDependencies(), Dependency.Scope.RUNTIME)

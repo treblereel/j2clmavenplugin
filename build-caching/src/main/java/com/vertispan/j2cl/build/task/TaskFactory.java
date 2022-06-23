@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.vertispan.j2cl.build.BuildService;
+
 /**
  * A task describes the type of output it provides, and for a given project will provide the
  * inputs it needs (its "dependencies", for want of a better phrase), and a way to start the
@@ -110,6 +112,6 @@ public abstract class TaskFactory {
      * @return a task that will be executed each time the given project
      * needs to be built, which should use created inputs and configs
      */
-    public abstract Task resolve(Project project, Config config);
+    public abstract Task resolve(Project project, Config config, BuildService buildService);
 
 }

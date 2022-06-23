@@ -215,7 +215,7 @@ public class TaskScheduler {
                         if (elapsedMillis > 5) {
                             buildLog.info("Finished " + taskDetails.getDebugName() + " in " + elapsedMillis + "ms");
                         }
-                        result.markSuccess();
+                        result.markSuccess(taskDetails.getAsInput());
 
                     } catch (Throwable exception) {
                         buildLog.error("Exception executing task " + taskDetails.getDebugName(), exception);

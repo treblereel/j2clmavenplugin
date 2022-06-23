@@ -2,6 +2,7 @@ package com.vertispan.j2cl.build.provided;
 
 import com.google.auto.service.AutoService;
 import com.google.j2cl.common.SourceUtils;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.*;
 import com.vertispan.j2cl.tools.Javac;
 
@@ -45,7 +46,9 @@ public class BytecodeTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService service) {
+        boolean incremental = config.getIncremental();
+
         if (!project.hasSourcesMapped()) {
             // instead, copy the bytecode+resources out of the jar so it can be used by downstream bytecode/apt tasks
             Input existingUnpackedBytecode = input(project, OutputTypes.INPUT_SOURCES);
@@ -82,6 +85,15 @@ public class BytecodeTask extends TaskFactory {
                         bytecodeClasspath.stream().map(Input::getParentPaths).flatMap(Collection::stream).map(Path::toFile),
                         extraClasspath.stream()
                 ).collect(Collectors.toList());
+
+                if (incremental) {
+                    Path bytecodePath = service.getDiskCache().getLastSuccessfulDirectory(new com.vertispan.j2cl.build.Input((com.vertispan.j2cl.build.Project) project,
+                                                                                                                                                          OutputTypes.BYTECODE));
+
+                    if (bytecodePath != null) {
+                        classpathDirs.add(bytecodePath.resolve("results").toFile());
+                    }
+                }
 
                 List<File> sourcePaths = inputDirs.getParentPaths().stream().map(Path::toFile).collect(Collectors.toList());
                 File generatedClassesDir = getGeneratedClassesDir(context);

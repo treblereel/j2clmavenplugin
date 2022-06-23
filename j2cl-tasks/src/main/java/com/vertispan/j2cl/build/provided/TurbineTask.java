@@ -5,15 +5,30 @@ import com.google.common.collect.ImmutableList;
 import com.google.j2cl.common.SourceUtils;
 import com.google.turbine.diag.TurbineError;
 import com.google.turbine.main.Main;
+import com.google.turbine.options.LanguageVersion;
 import com.google.turbine.options.TurbineOptions;
+import com.vertispan.j2cl.build.BuildService;
+import com.vertispan.j2cl.build.incremental.BuildMapBuilder;
 import com.vertispan.j2cl.build.task.*;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
+import org.apache.commons.io.IOUtils;
 
 import javax.lang.model.SourceVersion;
-import java.io.*;
-import java.nio.file.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -21,6 +36,7 @@ import java.util.zip.ZipInputStream;
 
 @AutoService(TaskFactory.class)
 public class TurbineTask extends JavacTask {
+
 
     public static final PathMatcher JAVA_SOURCES = withSuffix(".java");
 
@@ -40,10 +56,10 @@ public class TurbineTask extends JavacTask {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService service) {
         int version = SourceVersion.latestSupported().ordinal();
         if(version == 8) {
-            return super.resolve(project, config);
+            return super.resolve(project, config, service);
         }
 
         // emits only stripped bytecode, so we're not worried about anything other than .java files to compile and .class on the classpath
@@ -51,6 +67,7 @@ public class TurbineTask extends JavacTask {
 
         List<File> extraClasspath = config.getExtraClasspath();
 
+        boolean incremental = config.getIncremental();
         List<Input> compileClasspath = scope(project.getDependencies(), Dependency.Scope.COMPILE).stream()
                 .map(p -> input(p, OutputTypes.STRIPPED_BYTECODE_HEADERS))
                 .map(input -> input.filter(JAVA_BYTECODE))
@@ -88,6 +105,37 @@ public class TurbineTask extends JavacTask {
             } catch (TurbineError e) {
                 // usually it means, it's an apt that can't be processed, log it
                 context.info(e.getMessage());
+            }
+
+            if(incremental) {
+
+                Input temp = input(project, OutputTypes.TRANSPILED_JS);
+
+                service.addStrippedSourcesPath((com.vertispan.j2cl.build.Project) project, context.outputPath());
+
+                BuildMapBuilder builder = new BuildMapBuilder(context.outputPath());
+                String jarFileName = output.toString();
+
+                JarFile jar = new JarFile(output);
+                ClassPool pool = ClassPool.getDefault();
+                try{
+                    pool.insertClassPath(jarFileName);
+
+                    jar.stream().map(JarEntry::getName).forEach(name -> {
+                        if(name.endsWith(".class") && !name.startsWith("META-INF")) {
+                            String className = name.replace(".class", "").replace("/", ".");
+                            try {
+                                CtClass clazz = pool.get(className);
+                                builder.addClass(clazz);
+                            } catch (NotFoundException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+
+                } catch (NotFoundException e) {
+                    System.out.println("error loading jar!!");
+                }
             }
         };
     }

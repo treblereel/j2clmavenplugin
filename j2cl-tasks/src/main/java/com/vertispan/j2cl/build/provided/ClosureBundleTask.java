@@ -4,6 +4,7 @@ import com.google.auto.service.AutoService;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DependencyOptions;
+import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.task.*;
 import io.methvin.watcher.hashing.Murmur3F;
 import com.vertispan.j2cl.tools.Closure;
@@ -43,7 +44,7 @@ public class ClosureBundleTask extends TaskFactory {
     }
 
     @Override
-    public Task resolve(Project project, Config config) {
+    public Task resolve(Project project, Config config, BuildService buildService) {
         final List<Input> js;
         if (project.isJsZip()) {
             js = Collections.singletonList(input(project, OutputTypes.BYTECODE).filter(ClosureTask.PLAIN_JS_SOURCES));
