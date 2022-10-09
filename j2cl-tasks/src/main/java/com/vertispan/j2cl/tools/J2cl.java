@@ -38,6 +38,14 @@ public class J2cl {
     }
 
     public boolean transpile(List<SourceUtils.FileInfo> sourcesToCompile, List<SourceUtils.FileInfo> nativeSources) {
+        sourcesToCompile.forEach(e -> {
+            System.out.println("SOURCE " + e.sourcePath() + " " + e.originalPath());
+        });
+
+        nativeSources.forEach(e -> {
+            System.out.println("NATIVE SOURCE " + e.sourcePath() + " " + e.originalPath());
+        });
+
         Problems problems = new Problems();
         try (OutputUtils.Output output = OutputUtils.initOutput(jsOutDir.toPath(), problems)) {
             J2clTranspilerOptions options = optionsBuilder

@@ -1,6 +1,7 @@
 package com.vertispan.j2cl.build;
 
 import com.vertispan.j2cl.build.impl.CollectedTaskInputs;
+import com.vertispan.j2cl.build.incremental.IncrementalProcessor;
 import com.vertispan.j2cl.build.task.BuildLog;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.TaskFactory;
@@ -18,6 +19,8 @@ public class BuildService {
     private final TaskScheduler taskScheduler;
     private final DiskCache diskCache;
 
+    private final IncrementalProcessor incrementalProcessor;
+
     // all registered project+task items that might need to be built, and their inputs
     private final Map<Input, CollectedTaskInputs> inputs = new HashMap<>();
 
@@ -26,11 +29,21 @@ public class BuildService {
 
     private BlockingBuildListener prevBuild;
 
+    private boolean incremental;
+
     public BuildService(TaskRegistry taskRegistry, TaskScheduler taskScheduler, DiskCache diskCache) {
         this.taskRegistry = taskRegistry;
         this.taskScheduler = taskScheduler;
         this.diskCache = diskCache;
+        this.diskCache.setBuildService(this);
+        this.incrementalProcessor = new IncrementalProcessor(this, diskCache);
     }
+
+    public BuildService(TaskRegistry taskRegistry, TaskScheduler taskScheduler, DiskCache diskCache, boolean incremental) {
+        this(taskRegistry, taskScheduler, diskCache);
+        this.incremental = incremental;
+    }
+
 
     /**
      * Specifies a project+task that this service is responsible for, should be called once for each
@@ -79,7 +92,6 @@ public class BuildService {
 
         // prep any other tasks that are needed
         for (Input input : collectedInputs.getInputs()) {
-
             // make sure we have sources, hashes
             if (input.getOutputType().equals(OutputTypes.INPUT_SOURCES)) {
                 // stop here, we'll handle this on the fly and point it at the actual sources, current hashes
@@ -197,6 +209,15 @@ public class BuildService {
         prevBuild = new WrappedBlockingBuildListener(buildListener);
         return taskScheduler.submit(inputs.values(), prevBuild);
     }
+
+    public boolean isIncremental() {
+        return incremental;
+    }
+
+    public IncrementalProcessor getIncrementalProcessor() {
+        return incrementalProcessor;
+    }
+
     class WrappedBlockingBuildListener extends BlockingBuildListener {
         private final BuildListener wrapped;
 

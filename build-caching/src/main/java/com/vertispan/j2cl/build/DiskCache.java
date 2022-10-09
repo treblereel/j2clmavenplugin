@@ -54,8 +54,8 @@ public abstract class DiskCache {
             return taskOutput;
         }
 
-        public void markSuccess() {
-            markFinished(this);
+        public void markSuccess(Input input) {
+            markFinished(input, this);
             runningTasks.remove(taskDir);
         }
         public void markFailure() {
@@ -79,6 +79,9 @@ public abstract class DiskCache {
 
     protected final File cacheDir;
     private final Executor executor;
+
+    protected BuildService buildService;
+
     /**
      * A single watch service to monitor all changes to the cache dir, under the assumption that
      * the entire cache directory is on a single filesystem.
@@ -113,6 +116,10 @@ public abstract class DiskCache {
 
         watchThread.start();
         livenessThread.start();
+    }
+
+    public void setBuildService(BuildService buildService) {
+        this.buildService = buildService;
     }
 
     private void checkForWork() {
@@ -477,6 +484,13 @@ public abstract class DiskCache {
             }
 
             if (successMarker.toFile().exists()) {
+
+                if(this.buildService.isIncremental()) {
+                    this.buildService.getIncrementalProcessor().setLastSuccessfulTaskDir(taskDir, taskDetails.getAsInput());
+                }
+
+
+
                 // make sure we know it was successful
                 knownOutputs.computeIfAbsent(taskDir, this::makeOutput);
                 // already finished, success, no need to actually wait
@@ -526,9 +540,17 @@ public abstract class DiskCache {
         return watchable.register(this.service, StandardWatchEventKinds.ENTRY_CREATE);
     }
 
-    public void markFinished(CacheResult successfulResult) {
+    public BuildService buildService() {
+        return buildService;
+    }
+
+    public void markFinished(Input input, CacheResult successfulResult) {
         try {
-            this.knownOutputs.put(successfulResult.taskDir, makeOutput(successfulResult.taskDir));
+            TaskOutput output = makeOutput(successfulResult.taskDir);
+            this.knownOutputs.put(successfulResult.taskDir, output);
+            if (buildService.isIncremental()) {
+                buildService.getIncrementalProcessor().setLastSuccessfulTaskDir(successfulResult.taskDir, input);
+            }
             Files.createFile(successMarker(successfulResult.taskDir));
         } catch (IOException ioException) {
             //TODO need to basically stop everything if we can't write files to cache
@@ -544,6 +566,10 @@ public abstract class DiskCache {
             //TODO need to basically stop everything if we can't write files to cache
             throw new UncheckedIOException(ioException);
         }
+    }
+
+    public File getCacheDir() {
+        return cacheDir;
     }
 
 }

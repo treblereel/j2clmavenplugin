@@ -2,6 +2,7 @@ package com.vertispan.j2cl.build.provided;
 
 import com.google.auto.service.AutoService;
 import com.google.j2cl.common.SourceUtils;
+import com.vertispan.j2cl.build.incremental.IncrementalProcessor;
 import com.vertispan.j2cl.build.task.*;
 import com.vertispan.j2cl.tools.J2cl;
 
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,6 +63,33 @@ public class J2clTask extends TaskFactory {
             )
                     .collect(Collectors.toList());
 
+            if (context.getBuildService().isIncremental()) {
+                Consumer<IncrementalProcessor.Result> consumer = (result) -> {
+
+                    List<SourceUtils.FileInfo> javaSources = result.sources.v.stream()
+                            .map(path -> SourceUtils.FileInfo.create(path.toAbsolutePath().toString(), result.sources.k.relativize(path).toString()))
+                            .collect(Collectors.toList());
+
+                    List<SourceUtils.FileInfo> nativeSources = result.natives.v.stream()
+                            .map(path -> SourceUtils.FileInfo.create(path.toAbsolutePath().toString(), result.natives.k.relativize(path).toString()))
+                            .collect(Collectors.toList());
+
+                    //because of classpathDirs i have to dub this expression
+                    J2cl compiler = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context);
+                    if (!compiler.transpile(javaSources, nativeSources)) {
+                        throw new IllegalStateException("Error while running J2CL");
+                    }
+                };
+
+                // on the first run, we'll build maps, write them to disk and continue with the default behavior,
+                // consumer will not be called
+                boolean doContinue = context.getBuildService()
+                        .getIncrementalProcessor()
+                        .beforeCompile(project, ownJavaSources, ownNativeJsSources, consumer, context.outputPath(), classpathDirs);
+                if (!doContinue) {
+                    return;
+                }
+            }
             J2cl j2cl = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context);
 
             // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,

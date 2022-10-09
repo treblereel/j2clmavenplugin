@@ -39,6 +39,8 @@ public class DefaultDiskCache extends DiskCache {
 
         for (Input input : inputs.getInputs()) {
             input.updateHash(hash);
+
+
         }
 
         for (Map.Entry<String, String> entry : inputs.getUsedConfigs().entrySet()) {
@@ -49,6 +51,9 @@ public class DefaultDiskCache extends DiskCache {
                 hash.update(entry.getValue().getBytes(StandardCharsets.UTF_8));
             }
         }
+
+        //System.out.println("HASH 1: " + cacheDir.toPath().resolve(projectName.replaceAll("[^\\-_a-zA-Z0-9.]", "-")).resolve(hash.getValueHexString() + "-" + inputs.getTaskFactory().getOutputType()));
+
 
         return cacheDir.toPath().resolve(projectName.replaceAll("[^\\-_a-zA-Z0-9.]", "-")).resolve(hash.getValueHexString() + "-" + inputs.getTaskFactory().getOutputType());
     }

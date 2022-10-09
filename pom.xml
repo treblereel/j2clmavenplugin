@@ -106,6 +106,8 @@
     <jsr305.version>3.0.2</jsr305.version>
     <commons.lang3.version>3.8.1</commons.lang3.version>
     <google.turbine.version>v20220503-1</google.turbine.version>
+    <directory.watcher.version>0.16.1</directory.watcher.version>
+    <javassist.version>3.29.2-GA</javassist.version>
     <slf4j.api.version>1.7.5</slf4j.api.version>
 
     <!-- Test goal -->
@@ -259,6 +261,18 @@
         <groupId>com.vertispan.turbine</groupId>
         <artifactId>turbine</artifactId>
         <version>${google.turbine.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.methvin</groupId>
+        <artifactId>directory-watcher</artifactId>
+        <version>${directory.watcher.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.javassist</groupId>
+        <artifactId>javassist</artifactId>
+        <version>${javassist.version}</version>
       </dependency>
 
       <dependency>

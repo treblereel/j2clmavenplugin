@@ -211,7 +211,7 @@ public class TaskScheduler {
                     }
                     try {
                         long start = System.currentTimeMillis();
-                        taskDetails.getTask().execute(new TaskContext(result.outputDir(), log));
+                        taskDetails.getTask().execute(new TaskContext(result.outputDir(), log, diskCache.buildService()));
                         if (Thread.currentThread().isInterrupted()) {
                             // Tried and failed to be canceled, so even though we were successful, some files might
                             // have been deleted. Continue deleting contents
@@ -222,7 +222,7 @@ public class TaskScheduler {
                         if (elapsedMillis > 5) {
                             buildLog.info("Finished " + taskDetails.getDebugName() + " in " + elapsedMillis + "ms");
                         }
-                        result.markSuccess();
+                        result.markSuccess(taskDetails.getAsInput());
 
                     } catch (Throwable exception) {
                         if (Thread.currentThread().isInterrupted()) {
@@ -282,6 +282,12 @@ public class TaskScheduler {
 
                 @Override
                 public void onSuccess(DiskCache.CacheResult cacheResult) {
+
+
+                    if(diskCache.buildService.isIncremental()) {
+                        //System.out.println("onSuccess " + taskDetails.getDebugName() + " " + cacheResult.outputDir());
+                        //diskCache.buildService.getIncrementalProcessor().setLastSuccessfulTaskDir(cacheResult.outputDir(), taskDetails.getAsInput());
+                    }
                     // Succeeded, didn't do it ourselves, can schedule more work unless there is a final task
                     if (taskDetails.getTask() instanceof TaskFactory.FinalOutputTask) {
                         // Do the work in an executor, so that we don't block the current thread (usually main or disk cache watcher)
@@ -349,7 +355,7 @@ public class TaskScheduler {
                     try {
                         //TODO Make sure that we want to write this to _only_ the current log, and not also to any file
                         //TODO Also be sure to write a prefix automatically
-                        ((TaskFactory.FinalOutputTask) taskDetails.getTask()).finish(new TaskContext(cacheResult.outputDir(), buildLog));
+                        ((TaskFactory.FinalOutputTask) taskDetails.getTask()).finish(new TaskContext(cacheResult.outputDir(), buildLog, diskCache.buildService()));
                         buildLog.info("Finished final task " + taskDetails.getDebugName() + " in " + (System.currentTimeMillis() - start) + "ms");
                     } catch (Throwable t) {
                         buildLog.error("FAILED   " + taskDetails.getDebugName() + " in " + (System.currentTimeMillis() - start) + "ms",t);

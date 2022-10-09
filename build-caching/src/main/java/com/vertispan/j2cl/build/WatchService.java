@@ -1,6 +1,7 @@
 package com.vertispan.j2cl.build;
 
 import com.vertispan.j2cl.build.task.BuildLog;
+import com.vertispan.j2cl.build.task.OutputTypes;
 import io.methvin.watcher.DirectoryChangeEvent;
 import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
@@ -45,6 +46,7 @@ public class WatchService {
         this.buildService = buildService;
         this.executorService = executorService;
         this.buildLog = log;
+        this.buildService.getIncrementalProcessor().setBuildQueue(buildQueue::requestBuild);
     }
 
     public void watch(Map<Project, List<Path>> sourcePathsToWatch) throws IOException {
@@ -53,6 +55,10 @@ public class WatchService {
         sourcePathsToWatch.forEach((project, paths) -> {
             paths.forEach(path -> pathToProjects.put(path, project));
         });
+
+        if(buildService.isIncremental()){
+            buildService.getIncrementalProcessor().setProjects(sourcePathsToWatch);
+        }
 
         onTimeoutListener = new CompositeListener(500, counter -> {
             Map<Path, ChangeSet> changeSet = onTimeoutListener.getChangeSet();
@@ -83,8 +89,12 @@ public class WatchService {
     }
 
     private void update(Map<Path, Project> pathToProjects, Map<Path, ChangeSet> changeSet) {
+        Set<ChangeSetHolder> projectsToBuild = new HashSet<>();
         for (Map.Entry<Path, ChangeSet> pathChangeSetEntry : changeSet.entrySet()) {
             Project project = pathToProjects.get(pathChangeSetEntry.getKey());
+
+            System.out.println("Project " + project + " changed");
+
             Map<Path, DiskCache.CacheEntry> created = new HashMap<>();
             Map<Path, DiskCache.CacheEntry> modified = new HashMap<>();
             Set<Path> deleted = new HashSet<>();
@@ -107,10 +117,32 @@ public class WatchService {
                     deleted.add(relativeFilePath);
                 }
             }
-            buildService.triggerChanges(project, created, modified, deleted);
+            projectsToBuild.add(new ChangeSetHolder(project, created, modified, deleted));
         }
-        // wait a moment then start a build (this should be pluggable)
-        buildQueue.requestBuild();
+
+        if(buildService.isIncremental()) {
+            buildService.getIncrementalProcessor().triggerChanges(projectsToBuild);
+        } else {
+            for (ChangeSetHolder changeSetHolder : projectsToBuild) {
+                buildService.triggerChanges(changeSetHolder.project, changeSetHolder.created, changeSetHolder.modified, changeSetHolder.deleted);
+            }
+            buildQueue.requestBuild();
+        }
+    }
+
+    public static class ChangeSetHolder {
+
+        public final Project project;
+        public final Map<Path, DiskCache.CacheEntry> created;
+        public final Map<Path, DiskCache.CacheEntry> modified;
+        public final Set<Path> deleted;
+
+        private ChangeSetHolder(Project project, Map<Path, DiskCache.CacheEntry> created, Map<Path, DiskCache.CacheEntry> modified, Set<Path> deleted) {
+            this.project = project;
+            this.created = created;
+            this.modified = modified;
+            this.deleted = deleted;
+        }
     }
 
     enum BuildState { IDLE, BUILDING, CANCELING_FOR_NEW_BUILD }

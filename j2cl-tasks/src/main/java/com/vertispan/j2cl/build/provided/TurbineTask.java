@@ -42,6 +42,8 @@ public class TurbineTask extends JavacTask {
     @Override
     public Task resolve(Project project, Config config) {
         int version = SourceVersion.latestSupported().ordinal();
+
+        System.out.println("TurbineTask version: " + version);
         if(version == 8) {
             return super.resolve(project, config);
         }
