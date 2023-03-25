@@ -77,7 +77,7 @@ public abstract class DiskCache {
         }
     }
 
-    protected final File cacheDir;
+    public final File cacheDir;
     private final Executor executor;
     /**
      * A single watch service to monitor all changes to the cache dir, under the assumption that

@@ -1,0 +1,77 @@
+package com.vertispan.j2cl.mojo.incremental.tasks;
+
+import com.google.j2cl.common.SourceUtils;
+import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.build.task.OutputTypes;
+import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.tools.Javac;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_SOURCES;
+
+public class BytecodeTask extends Task {
+
+   private final File bootstrapClasspath;
+
+    public BytecodeTask(TaskContext context) {
+        super(context);
+        bootstrapClasspath = context.config.getBootstrapClasspath();
+    }
+
+    @Override
+    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+        if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
+            return;
+        }
+
+        Project project = changeSetHolder.project;
+
+        List<SourceUtils.FileInfo> sources = Stream.concat(
+                        changeSetHolder.created.values().stream(),
+                        changeSetHolder.modified.values().stream()
+                ).filter(value -> JAVA_SOURCES.matches(value.getSourcePath()))
+                .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
+                .collect(Collectors.toUnmodifiableList());
+
+        File classOutputDir = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("results").toFile();
+        File generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("generated").toFile();
+
+        List<File> classpathDirs = Stream.concat(
+                project.getDependencies()
+                        .stream()
+                        .map(dep -> context.outputFactory.create(dep.getProject(), OutputTypes.BYTECODE).getOutputPath().resolve("results"))
+                        .map(Path::toFile),
+                context.config.getExtraClasspath()
+                        .stream())
+                .collect(Collectors.toUnmodifiableList());
+
+        List<File> sourcePaths = ((com.vertispan.j2cl.build.Project) project).getSourceRoots()
+                .stream()
+                .map(File::new)
+                .collect(Collectors.toUnmodifiableList());
+
+        for (SourceUtils.FileInfo source : sources) {
+            System.out.println("compile " + source.sourcePath() + " " + source.originalPath());
+        }
+
+        try {
+            Javac javac = new Javac(context.log, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, bootstrapClasspath);
+
+            if (!javac.compile(sources)) {
+                throw new RuntimeException("Failed to complete bytecode task, check log");
+            }
+        } catch (IOException exception) {
+            exception.printStackTrace();
+            throw new RuntimeException(exception);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            throw exception;
+        }
+    }
+}

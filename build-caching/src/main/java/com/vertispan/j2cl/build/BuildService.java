@@ -25,6 +25,7 @@ public class BuildService {
     private final Map<Project, Map<Path, DiskCache.CacheEntry>> currentProjectSourceHash = new HashMap<>();
 
     private BlockingBuildListener prevBuild;
+    private PropertyTrackingConfig.ConfigValueProvider config;
 
     public BuildService(TaskRegistry taskRegistry, TaskScheduler taskScheduler, DiskCache diskCache) {
         this.taskRegistry = taskRegistry;
@@ -41,6 +42,7 @@ public class BuildService {
     public void assignProject(Project project, String finalTask, PropertyTrackingConfig.ConfigValueProvider config) {
         // find the tasks and their upstream tasks
         collectTasksFromProject(finalTask, project, config, inputs);
+        this.config = config;
     }
 
     private void collectTasksFromProject(String taskName, Project project, PropertyTrackingConfig.ConfigValueProvider config, Map<Input, CollectedTaskInputs> collectedSoFar) {
@@ -228,4 +230,12 @@ public class BuildService {
         }
     }
 
+
+    public DiskCache getDiskCache() {
+        return diskCache;
+    }
+
+    public PropertyTrackingConfig.ConfigValueProvider getConfig() {
+        return config;
+    }
 }

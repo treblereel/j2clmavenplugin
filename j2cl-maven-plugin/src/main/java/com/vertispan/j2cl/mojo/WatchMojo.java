@@ -7,6 +7,7 @@ import com.vertispan.j2cl.build.Project;
 import com.vertispan.j2cl.build.TaskRegistry;
 import com.vertispan.j2cl.build.TaskScheduler;
 import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.mojo.incremental.Processor;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
@@ -201,6 +202,8 @@ public class WatchMojo extends AbstractBuildMojo {
         // TODO support individual task registries per execution
         TaskRegistry taskRegistry = createTaskRegistry();
         BuildService buildService = new BuildService(taskRegistry, taskScheduler, diskCache);
+
+        Processor processor = new Processor(buildService, mavenLog);
         // TODO end
 
         // assemble all of the projects we are hoping to run - if we fail in this process, we can't actually start building or watching
@@ -260,6 +263,7 @@ public class WatchMojo extends AbstractBuildMojo {
 //                                Map<String, String> outputToNameMappings = config.findNode("taskMappings").getChildren().stream().collect(Collectors.toMap(PropertyTrackingConfig.ConfigValueProvider.ConfigNode::getName, PropertyTrackingConfig.ConfigValueProvider.ConfigNode::readString));
 //                                TaskRegistry taskRegistry = new TaskRegistry(outputToNameMappings);
 //                                BuildService buildService = new BuildService(taskRegistry, taskScheduler, diskCache);
+                                processor.assignProject(p);
                                 buildService.assignProject(p, outputTask, config);
                             }
                         }
@@ -269,7 +273,7 @@ public class WatchMojo extends AbstractBuildMojo {
         } catch (Exception ex) {
             throw new MojoExecutionException("Failed to build project model", ex);
         }
-        WatchService watchService = new WatchService(buildService, executor, mavenLog);
+        WatchService watchService = new WatchService(buildService, executor, processor, mavenLog);
         try {
             // trigger initial changes, and start up watching for future ones to rebuild
             watchService.watch(
