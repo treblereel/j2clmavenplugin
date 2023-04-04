@@ -6,7 +6,6 @@ import com.google.turbine.main.Main;
 import com.google.turbine.options.TurbineOptions;
 import com.vertispan.j2cl.build.Project;
 import com.vertispan.j2cl.build.WatchService;
-import com.vertispan.j2cl.build.task.Input;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.mojo.incremental.Output;
 
@@ -15,9 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,15 +35,14 @@ public class TurbineTask extends Task {
             return;
         }
         List<File> extraClasspath = context.config.getExtraClasspath();
-        Path strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("results");
+        Path strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).results();
         Output strippedBytecodeHeaders = context.outputFactory.create(project, OutputTypes.STRIPPED_BYTECODE_HEADERS);
-        Path results = strippedBytecodeHeaders.getOutputPath().resolve("results");
+        Path results = strippedBytecodeHeaders.results();
         delete(results);
         List<String> deps = Stream.concat(project.getDependencies()
                         .stream()
                         .map(dependency -> context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
-                                .getOutputPath()
-                                .resolve("results")
+                                .results()
                                 .resolve("output.jar")).
                         map(Path::toString),
                 extraClasspath.stream().map(File::toString)

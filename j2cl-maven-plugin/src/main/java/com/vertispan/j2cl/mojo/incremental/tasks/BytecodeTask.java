@@ -39,13 +39,13 @@ public class BytecodeTask extends Task {
                 .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
                 .collect(Collectors.toUnmodifiableList());
 
-        File classOutputDir = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("results").toFile();
-        File generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("generated").toFile();
+        File classOutputDir = context.outputFactory.create(project, OutputTypes.BYTECODE).results().toFile();
+        File generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).generated().toFile();
 
         List<File> classpathDirs = Stream.concat(
                 project.getDependencies()
                         .stream()
-                        .map(dep -> context.outputFactory.create(dep.getProject(), OutputTypes.BYTECODE).getOutputPath().resolve("results"))
+                        .map(dep -> context.outputFactory.create(dep.getProject(), OutputTypes.BYTECODE).results())
                         .map(Path::toFile),
                 context.config.getExtraClasspath()
                         .stream())

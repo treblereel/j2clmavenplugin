@@ -35,9 +35,6 @@ public class Javac {
 
     public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap) throws IOException {
         this.log = log;
-//        for (File file : classpath) {
-//            System.out.println(file.getAbsolutePath() + " " + file.exists() + " " + file.isDirectory());
-//        }
         javacOptions = new ArrayList<>(Arrays.asList("-encoding", "utf8", "-implicit:none", "-bootclasspath", bootstrap.toString()));
         if (generatedClassesPath == null) {
             javacOptions.add("-proc:none");

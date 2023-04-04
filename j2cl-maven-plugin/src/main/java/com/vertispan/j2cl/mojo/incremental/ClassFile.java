@@ -9,37 +9,38 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-class ClassFile {
+public class ClassFile {
 
     private final String className;
 
-    private Set<FieldDefinition> fields = new HashSet<>();
-    private Set<MethodDefinition> methods = new HashSet<>();
+    private final Set<FieldDefinition> fields = new HashSet<>();
+    private final Set<MethodDefinition> methods = new HashSet<>();
     private String extendsClass;
 
-    private Set<String> referencedClasses = new TreeSet<>();
+    private final Set<String> referencedClasses = new TreeSet<>();
 
-    private Set<String> implementsInterfaces = new HashSet<>();
+    private final Set<String> implementsInterfaces = new HashSet<>();
 
-    private Set<ClassFile> nested = new HashSet<>();
+    private final Set<ClassFile> nested = new HashSet<>();
 
-    ClassFile(String className) {
+
+    public ClassFile(String className) {
         this.className = className;
     }
 
-    void addExtendsClass(String clazz) {
+    public void addExtendsClass(String clazz) {
         this.extendsClass = clazz;
     }
 
-    void addImplementsInterface(String clazz) {
+    public void addImplementsInterface(String clazz) {
         implementsInterfaces.add(clazz);
     }
 
-    void addField(String name, String type) {
+    public void addField(String name, String type) {
         fields.add(new FieldDefinition(name, type));
     }
 
-    void addMethod(String name, String returnType, String... parameterType) {
+    public void addMethod(String name, String returnType, String... parameterType) {
         String params = Arrays.stream(parameterType).collect(Collectors.joining(","));
         MethodDefinition methodDefinition = new MethodDefinition(name, returnType, params);
         methods.add(methodDefinition);
@@ -77,7 +78,7 @@ class ClassFile {
         return sb.toString();
     }
 
-    void addReference(String r) {
+    public void addReference(String r) {
         referencedClasses.add(r);
     }
 

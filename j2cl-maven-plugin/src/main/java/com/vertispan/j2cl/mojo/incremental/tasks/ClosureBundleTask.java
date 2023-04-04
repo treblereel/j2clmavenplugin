@@ -37,10 +37,10 @@ public class ClosureBundleTask extends Task {
     public void accept(WatchService.ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
 
-        Path transpiledJs = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).getOutputPath().resolve("results");
-        Path bytecode = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("results");
-        Path bytecodeGenerated = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("generated");
-        File closureOutputDir = context.outputFactory.create(project, OutputTypes.BUNDLED_JS).getOutputPath().resolve("results").toFile();
+        Path transpiledJs = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results();
+        Path bytecode = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
+        Path bytecodeGenerated = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
+        File closureOutputDir = context.outputFactory.create(project, OutputTypes.BUNDLED_JS).results().toFile();
 
 
         try {

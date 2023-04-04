@@ -63,11 +63,6 @@ public class J2clTask extends TaskFactory {
             )
                     .collect(Collectors.toUnmodifiableList());
 
-
-            for (File classpathDir : classpathDirs) {
-                System.out.println(this.getClass().getName() + " Classpath dir: " + classpathDir);
-            }
-
             J2cl j2cl = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context);
 
             // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,

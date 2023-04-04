@@ -11,6 +11,7 @@ import com.vertispan.j2cl.mojo.incremental.tasks.BytecodeTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.ClearGeneratedTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.ClosureBundleTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.J2clTask;
+import com.vertispan.j2cl.mojo.incremental.tasks.PostBytecodeTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.RemoveDeletedTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.StrippedSourcesTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.TaskContext;
@@ -21,6 +22,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtField;
 import javassist.CtMethod;
+import javassist.Modifier;
 import javassist.NotFoundException;
 
 import java.io.IOException;
@@ -35,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_BYTECODE;
 
 public class Processor implements WatchService.IncrementalProcessorDelegate {
 
@@ -62,15 +66,15 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
     private final Set<WatchService.ChangeSetHolder> lastBuildRequest = new HashSet<>();
 
+    private final Set<WatchService.ChangeSetHolder> current = new HashSet<>();
 
     public void requestBuild(Set<WatchService.ChangeSetHolder> projectsToBuild) {
-        if(projectsToBuild.isEmpty()) {
+        if (projectsToBuild.isEmpty()) {
             return;
         }
 
         projectsToBuild.addAll(lastBuildRequest);
-
-
+        current.addAll(projectsToBuild);
 
         PropertyTrackingConfig config = new PropertyTrackingConfig(buildService.getConfig());
         config.getBootstrapClasspath();
@@ -78,65 +82,41 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
         //move to constructor
         TaskGroup taskGroup = new TaskGroup();
-        TaskContext context = new TaskContext(outputFactory, config, mavenLog, root);
+        TaskContext context = new TaskContext(outputFactory, config, mavenLog, root, pool, files, current);
         taskGroup.addTask(new ClearGeneratedTask(context));
-        taskGroup.addTask(new RemoveDeletedTask(context, files));
+        taskGroup.addTask(new RemoveDeletedTask(context));
         taskGroup.addTask(new BytecodeTask(context));
+        taskGroup.addTask(new PostBytecodeTask(context));
         taskGroup.addTask(new StrippedSourcesTask(context));
         taskGroup.addTask(new TurbineTask(context));
         taskGroup.addTask(new J2clTask(context));
         taskGroup.addTask(new ClosureBundleTask(context));
 
 
-        System.out.println("requestBuild " + config.getBootstrapClasspath());
-
+        System.out.println("requestBuild ");
 
         projectsToBuild.forEach(p -> {
-            System.out.println("requestBuild " + p.project.getKey());
-
-            p.created.forEach((path, c) -> {
-                //onCreate(p.project, path, c);
-            });
-
-            p.modified.forEach((path, c) -> {
-                //onModified(p.project, path, c);
-            });
-
-            onDelete(p.project, p.deleted);
+            System.out.println("project " + p.project.getKey());
+            System.out.println("modified " + p.created);
+            System.out.println("modified " + p.modified);
+            System.out.println("modified " + p.deleted);
         });
+
 
         long start = System.currentTimeMillis();
 
-        Runnable runnable = () -> System.out.println("FINISHED IN " + (System.currentTimeMillis() - start) + "ms");
+        Runnable runnable = () -> {
+            projectsToBuild.clear();
+            current.clear();
+            System.out.println("FINISHED IN " + (System.currentTimeMillis() - start) + "ms");
+        };
         BundleJarTask bundleJarTask = new BundleJarTask(context, root, runnable);
-        new TaskGroupExecutor(taskGroup, bundleJarTask).execute(projectsToBuild);
+        new TaskGroupExecutor(taskGroup, bundleJarTask).execute(current);
     }
 
 
     // do not forget to delete files from the output directories
 
-
-
-    private void onDelete(Project project, Set<Path> paths) {
-        System.out.println("onDelete " + project.getKey());
-        paths.forEach(p -> {
-            System.out.println("onDelete " + p);
-        });
-    }
-
-    private void onCreate(Project project, Set<Path> paths) {
-        System.out.println("onDelete " + project.getKey());
-        paths.forEach(p -> {
-            System.out.println("onDelete " + p);
-        });
-    }
-
-    private void onModified(Project project, Set<Path> paths) {
-        System.out.println("onDelete " + project.getKey());
-        paths.forEach(p -> {
-            System.out.println("onDelete " + p);
-        });
-    }
 
     public void ready() {
         System.out.println("ready " + projectListMap.size());
@@ -144,114 +124,60 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 .stream()
                 .flatMap(p -> p.getDependencies().stream())
                 .forEach(p -> {
-                    Path path = outputFactory.create(p.getProject(), OutputTypes.BYTECODE).getOutputPath();
+                    Path path = outputFactory.create(p.getProject(), OutputTypes.BYTECODE).results();
                     try {
-                        pool.appendClassPath(path.resolve("results").toFile().getAbsolutePath());
+                        pool.appendClassPath(path.toString());
                     } catch (NotFoundException e) {
                         throw new RuntimeException(e);
                     }
                 });
 
-        Map<Project, Set<String>> added = new HashMap<>();
-
         projectListMap.forEach((project, folders) -> {
             System.out.println("project " + project.getKey());
-            added.put(project, new HashSet<>());
-            Path byteCodePath = outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath();
+            Path byteCodePath = outputFactory.create(project, OutputTypes.BYTECODE).results();
             try {
                 // is it the same as above?
-                pool.appendClassPath(byteCodePath.resolve("results").toFile().getAbsolutePath());
+                pool.appendClassPath(byteCodePath.toString());
             } catch (NotFoundException e) {
                 throw new RuntimeException(e);
             }
-            folders.forEach(folder -> {
-                System.out.println("path " + folder);
-                try (Stream<Path> paths = Files.walk(folder)) {
-                    paths.filter(Files::isRegularFile)
-                            .filter(file -> file.toString().endsWith(".java")).forEach(file -> {
-                                String className = folder.relativize(file).toString().replace(".java", ".class");
-                                Path classFile = Paths.get(className);
-                                if (Files.exists(byteCodePath.resolve("results").resolve(classFile))) {
-                                    added.get(project).add(className.substring(0, className.lastIndexOf(".")));
-                                    System.out.println("    " + file + " " + byteCodePath.resolve("results").resolve(classFile).toString());
-                                } else {
-                                    System.out.println("not found " + byteCodePath.resolve("results").resolve(classFile));
-                                }
-                            });
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        });
 
-
-        // pool must be ready
-        added.forEach((project, classes) -> {
-            classes.forEach(className -> {
-                try {
-                    System.out.println("take " + className);
-
-                    addOrUpdateCtClass(project, className);
-
-
-                    CtClass ctClass = pool.get(className.replace("/", "."));
-                    System.out.println("found " + ctClass.getName() + " " + ctClass.getPackageName() + " " + ctClass.getNestedClasses().length);
-
-                    //ctClass.getRefClasses()
-
-                    for (CtClass declaredClass : ctClass.getDeclaredClasses()) {
-                        System.out.println(" nested " + declaredClass.getName() + " " + declaredClass.getPackageName());
+            try (Stream<Path> paths = Files.walk(byteCodePath).filter(JAVA_BYTECODE::matches)) {
+                for (Path path : paths.collect(Collectors.toUnmodifiableSet())) {
+                    Path relative = byteCodePath.relativize(path);
+                    String className = relative.toString().replace(".class", "").replace("/", ".");
+                    CtClass ctClass = pool.getOrNull(className);
+                    if (ctClass != null && ctClass.getDeclaringClass() == null) {
+                        Definition definition = createDefinition(project, className, ctClass);
+                        files.put(className, definition);
                     }
-
-                } catch (NotFoundException e) {
-                    System.out.println("EXP " + e.getMessage() + " " + className.replace("/", "."));
-                    throw new RuntimeException(e);
                 }
-            });
-        });
-
-
-       files.forEach((k, v) -> {
-           for (String dependency : v.getDependencies()) {
-                if(files.containsKey(dependency)) {
-                    files.get(dependency).addDependent(k);
-                }
-           }
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
         });
 
         files.forEach((k, v) -> {
-            System.out.println("file " + k + " " + v.getProject().getKey() + " " + v.sourcePath());
             for (String dependency : v.getDependencies()) {
-                System.out.println("    dependency : " + dependency);
+                if (files.containsKey(dependency)) {
+                    files.get(k).addOut(dependency);
+                    files.get(dependency).addIn(k);
+                }
             }
-            v.getDependents().forEach((k1) -> {
-                System.out.println("    dependent : " + k1);
-            });
+        });
+
+        files.forEach((k, v) -> {
+            System.out.println("file " + k + " " + v);
         });
     }
 
-    private void addOrUpdateCtClass(Project project, String className) {
-        try {
-            String fqdn = className.replace("/", ".");
-            CtClass ctClass = pool.getOrNull(fqdn);
-            if (ctClass != null) {
-                if (files.containsKey(fqdn)) {
-                    files.remove(fqdn);
-                }
-                for (CtClass nestedClass : ctClass.getNestedClasses()) {
-                    if (files.containsKey(nestedClass.getName())) {
-                        files.remove(nestedClass.getName());
-                    }
-                }
-                ClassFile classFile = getClassFile(project, ctClass);
-                Definition definition = new Definition(project, classFile);
-                files.put(fqdn, definition);
-            } else {
-                throw new RuntimeException("not found " + className);
-            }
-        } catch (NotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    private Definition createDefinition(Project project, String className, CtClass ctClass) {
+        ClassFile classFile = getClassFile(project, ctClass);
+        return new Definition(project, className, classFile);
     }
 
     private ClassFile getClassFile(Project project, CtClass ctClass) {
@@ -276,12 +202,12 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                     .forEach(classFile::addReference);
 
             for (CtClass nestedClass : ctClass.getNestedClasses()) {
+                if (Modifier.isPrivate(nestedClass.getModifiers())) {
+                    continue;
+                }
                 ClassFile nested = getClassFile(project, nestedClass);
-                Definition definition = new Definition(project, classFile);
-                files.put(nestedClass.getName(), definition);
                 classFile.addNested(nested);
             }
-
             return classFile;
         } catch (NotFoundException e) {
             throw new RuntimeException(e);

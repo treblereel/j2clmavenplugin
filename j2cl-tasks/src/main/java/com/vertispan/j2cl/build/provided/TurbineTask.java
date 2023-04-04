@@ -73,15 +73,6 @@ public class TurbineTask extends JavacTask {
                     .map(SourceUtils.FileInfo::sourcePath)
                     .collect(Collectors.toUnmodifiableList());
 
-            for (String source : sources) {
-                System.out.println("TURBINE SOURCE: " + source);
-            }
-
-            for (String dep : deps) {
-                System.out.println("TURBINE deps: " + dep);
-
-            }
-
             try {
                 Main.Result result = Main.compile(
                         TurbineOptions.builder()

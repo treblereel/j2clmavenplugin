@@ -17,7 +17,7 @@ public class ClearGeneratedTask extends Task {
 
     @Override
     public void accept(WatchService.ChangeSetHolder changeSetHolder) {
-        Path output = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE).getOutputPath().resolve("generated");
+        Path output = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE).generated();
 
         if(Files.exists(output)) {
                 Stack<File> stack = new Stack<>();

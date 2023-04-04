@@ -47,8 +47,8 @@ public class J2clTask extends Task {
                 .map(Path::toFile)
                 .forEach(classpathDirs::add);
 
-        File classOutputDir = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).getOutputPath().resolve("results").toFile();
-        Path generated = context.outputFactory.create(project, OutputTypes.BYTECODE).getOutputPath().resolve("generated");
+        File classOutputDir = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results().toFile();
+        Path generated = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
 
         try {
 

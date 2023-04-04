@@ -56,11 +56,6 @@ public class BundleJarTask extends TaskFactory {
                 .map(i -> i.filter(BUNDLE_JS))
                 .collect(Collectors.toUnmodifiableList());
 
-        for (Input jsSource : jsSources) {
-            System.out.println("Found " + jsSource.getProject().getKey());
-        }
-
-
         // Sort the projects, to try to include them in order. We can't be sure that all project
         // dependencies will be (or should be) present, but we can make sure that we only load
         // our own JS after any dependencies that will be included have already loaded.

@@ -24,7 +24,7 @@ public class StrippedSourcesTask extends Task {
             return;
         }
 
-        File output = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("results").toFile();
+        File output = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).results().toFile();
 
         List<SourceUtils.FileInfo> sources = Stream.concat(
                         changeSetHolder.created.values().stream(),

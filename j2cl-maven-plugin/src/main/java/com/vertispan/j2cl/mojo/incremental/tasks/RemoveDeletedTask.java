@@ -14,11 +14,8 @@ import java.util.Map;
 
 public class RemoveDeletedTask extends Task {
 
-    private final Map<String, Definition> files;
-
-    public RemoveDeletedTask(TaskContext context, Map<String, Definition> files) {
+    public RemoveDeletedTask(TaskContext context) {
         super(context);
-        this.files = files;
     }
 
     @Override
@@ -34,11 +31,11 @@ public class RemoveDeletedTask extends Task {
 
                     System.out.println("deleteFile " + path);
 
-                    Path javaFileByteCodeOutput = byteCodeOutput.getOutputPath().resolve("results").resolve(path);
+                    Path javaFileByteCodeOutput = byteCodeOutput.results().resolve(path);
                     //replace .java with .class
                     String fileName = path.getFileName().toString().replace(".java", "");
                     String fqdn = fileName.replace("/", ".");
-                    Definition definition = files.remove(fqdn); //TODO
+                    Definition definition = context.files.remove(fqdn); //TODO
 
                     String className = fileName + ".class";
                     String classImpl = fileName + ".impl.java.js";
@@ -49,17 +46,17 @@ public class RemoveDeletedTask extends Task {
                     Files.deleteIfExists(javaFileByteCodeOutput);
                     Files.deleteIfExists(javaFileByteCodeOutput.resolveSibling(className));
 
-                    Path javaFileStrippedSourcesOutput = outputStrippedSources.getOutputPath().resolve("results").resolve(path);
+                    Path javaFileStrippedSourcesOutput = outputStrippedSources.results().resolve(path);
                     Files.deleteIfExists(javaFileStrippedSourcesOutput);
 
-                    Path javaFileTranspiledJsOutput = outputTranspiledJs.getOutputPath().resolve("results").resolve(path);
+                    Path javaFileTranspiledJsOutput = outputTranspiledJs.results().resolve(path);
 
                     Files.deleteIfExists(javaFileTranspiledJsOutput);
                     Files.deleteIfExists(javaFileTranspiledJsOutput.resolveSibling(classImpl));
                     Files.deleteIfExists(javaFileTranspiledJsOutput.resolveSibling(classJavaJs));
                     Files.deleteIfExists(javaFileTranspiledJsOutput.resolveSibling(classJsMap));
 
-                    Path javaFileOutputBundledJs = outputBundledJs.getOutputPath().resolve("results").resolve("sources").resolve(path);
+                    Path javaFileOutputBundledJs = outputBundledJs.results().resolve("sources").resolve(path);
 
                     Files.deleteIfExists(javaFileOutputBundledJs);
                     Files.deleteIfExists(javaFileOutputBundledJs.resolveSibling(classImpl));

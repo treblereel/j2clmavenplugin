@@ -92,9 +92,6 @@ public class WatchService {
         Set<ChangeSetHolder> projectsToBuild = new HashSet<>();
         for (Map.Entry<Path, ChangeSet> pathChangeSetEntry : changeSet.entrySet()) {
             Project project = pathToProjects.get(pathChangeSetEntry.getKey());
-
-            System.out.println("Project " + project + " changed");
-
             Map<Path, DiskCache.CacheEntry> created = new HashMap<>();
             Map<Path, DiskCache.CacheEntry> modified = new HashMap<>();
             Set<Path> deleted = new HashSet<>();
