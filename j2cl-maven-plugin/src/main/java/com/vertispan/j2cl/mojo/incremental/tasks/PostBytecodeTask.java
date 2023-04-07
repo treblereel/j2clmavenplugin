@@ -4,6 +4,8 @@ import com.vertispan.j2cl.build.DiskCache;
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetEntry;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.mojo.incremental.ClassFile;
 import com.vertispan.j2cl.mojo.incremental.Definition;
 import javassist.CtClass;
@@ -33,16 +35,28 @@ public class PostBytecodeTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         Map<String, Definition> removed = new HashMap<>();
         System.out.println("accept " + changeSetHolder.created + " " + changeSetHolder.modified + " " + changeSetHolder.deleted);
 
         Project project = changeSetHolder.project;
         Path results = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
 
+
+        context.files.values().forEach(d -> {
+            System.out.println("cache " + d);
+            d.getOut().forEach(dd -> {
+                System.out.println(" out " + dd);
+            });
+
+            d.getIn().forEach(dd -> {
+                System.out.println(" in " + dd);
+            });
+
+        });
+
         Set<Path> removeFromPool = new HashSet<>();
-        changeSetHolder.created.entrySet().stream().map(Map.Entry::getKey).forEach(removeFromPool::add);
-        changeSetHolder.modified.entrySet().stream().map(Map.Entry::getKey).forEach(removeFromPool::add);
+        changeSetHolder.modified.stream().map(m -> m.relativePath).forEach(removeFromPool::add);
         removeFromPool.addAll(changeSetHolder.deleted);
 
         removeFromPool.stream()
@@ -64,25 +78,28 @@ public class PostBytecodeTask extends Task {
             });
         });
 
-        changeSetHolder.created.forEach((path, file) -> {
-            processByteCodePath(project, results, path);
+        changeSetHolder.created.forEach((entry) -> {
+            processByteCodePath(project, results, entry.relativePath);
         });
 
 
-        changeSetHolder.created.forEach((path, file) -> {
-            processByteCodePath(project, results, path);
+        changeSetHolder.created.forEach((entrye) -> {
+            processByteCodePath(project, results, entrye.relativePath);
         });
 
         Set<String> doRecompute = new HashSet<>();
 
-        changeSetHolder.modified.forEach((path, file) -> {
-            Definition oldDefinition = removed.get(path.toString().replace('/', '.').replace(".java", ""));
-            Definition newDefinition = processByteCodePath(project, results, path);
+        changeSetHolder.modified.forEach((entry) -> {
+            Definition oldDefinition = removed.get(entry.relativePath.toString().replace('/', '.').replace(".java", ""));
+            Definition newDefinition = processByteCodePath(project, results, entry.relativePath);
             newDefinition.getIn().addAll(oldDefinition.getIn());
             boolean theSame = oldDefinition.generateHash().equals(newDefinition.generateHash());
-            System.out.println("Modified " + path + " " + theSame);
+            System.out.println("Modified " + entry.relativePath + " " + theSame);
+
+            System.out.println("old " + oldDefinition);
+
             if(!theSame) {
-                System.out.println("Different " + path);
+                System.out.println("Different " + entry.relativePath);
                 doRecompute.addAll(newDefinition.getIn());
             }
         });
@@ -91,31 +108,51 @@ public class PostBytecodeTask extends Task {
         doRecompute.forEach(in -> {
             //check if this is already in the queue
                 Project project1 = context.files.get(in).getProject();
-                Path fqdn = Paths.get(in.replace(".", "/") + ".java");
-                if(!context.current.stream().filter(set -> set.project.equals(project1))
-                                .filter(set -> set.modified.keySet().contains(fqdn))
+                Path classFile = Paths.get(in.replace(".", "/") + ".java");
+
+                if(!context.current.entrySet().stream().filter(set -> set.getKey().equals(project1))
+                        .flatMap(set -> set.getValue().modified.stream())
+                        .map(m -> m.absolutePath)
+                        .filter(m -> m.equals(classFile))
                         .findFirst()
                         .isPresent()){
                 for(String root: ((com.vertispan.j2cl.build.Project)project1).getSourceRoots()) {
-                    Path maybe = Paths.get(root).resolve(fqdn);
+                    Path maybe = Paths.get(root).resolve(classFile);
+                    if(Files.exists(maybe)) {
+                        ChangeSetEntry entry = new ChangeSetEntry(classFile, maybe);
+                        System.out.println("YESS " + entry);
+                        context.current.putIfAbsent((com.vertispan.j2cl.build.Project) project1, new ChangeSetHolder(project1));
+                        context.current.get(project1).modified.add(entry);
+                        context.addToBuildQueue((com.vertispan.j2cl.build.Project) project1);
+                        break;
+                    }
+
+/*                    Path maybe = Paths.get(root).resolve(fqdn);
                     System.out.println(" path? " + root + " " + Files.exists(maybe));
                     if(Files.exists(maybe)) {
+                        ChangeSetEntry entry = new ChangeSetEntry(maybe, fqdn);
+
+
                         DiskCache.CacheEntry cacheEntry = new DiskCache.CacheEntry(fqdn, maybe, null);
-                        Optional<WatchService.ChangeSetHolder> holder = context.current.stream().filter(set -> set.project.equals(project1)).findFirst();
+
+
+
+
+                        Optional<ChangeSetHolder> holder = context.current.stream().filter(set -> set.project.equals(project1)).findFirst();
                         if(holder.isPresent()) {
                             holder.get().modified.put(fqdn, cacheEntry);
                         } else {
                             Map<Path, DiskCache.CacheEntry> modified = new HashMap<>();
                             modified.put(fqdn, cacheEntry);
-                            context.current.add(new WatchService.ChangeSetHolder(project1, new HashMap<>(), modified, Collections.emptySet()));
+                            context.current.get(project1).  (new ChangeSetHolder(project1, new HashMap<>(), modified, Collections.emptySet()));
                         }
 
 
 
 
-                        context.current.add(new WatchService.ChangeSetHolder(project1, new HashMap<>(), new HashMap<>(), new HashMap<>()));
+                        context.current.add(new ChangeSetHolder(project1, new HashMap<>(), new HashMap<>(), new HashMap<>()));
                         break;
-                    }
+                    }*/
 
                 }
 

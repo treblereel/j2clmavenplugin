@@ -2,6 +2,7 @@ package com.vertispan.j2cl.mojo.incremental.tasks;
 
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.mojo.incremental.Definition;
 import com.vertispan.j2cl.mojo.incremental.Output;
 import com.vertispan.j2cl.mojo.incremental.tasks.Task;
@@ -19,7 +20,7 @@ public class RemoveDeletedTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         if (!changeSetHolder.deleted.isEmpty()) {
             try {
                 Output byteCodeOutput = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE);

@@ -4,9 +4,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.turbine.diag.TurbineError;
 import com.google.turbine.main.Main;
 import com.google.turbine.options.TurbineOptions;
-import com.vertispan.j2cl.build.Project;
-import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
+import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.mojo.incremental.Output;
 
 import java.io.File;
@@ -29,7 +29,7 @@ public class TurbineTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
         if (context.application.equals(project)) {
             return;

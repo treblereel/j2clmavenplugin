@@ -79,7 +79,7 @@ public class Definition {
                 ", name=" + className +
                 ", in=" + in.stream().collect(Collectors.joining(",")) +
                 ", out=" + out.stream().collect(Collectors.joining(",")) +
-                ", classFile=" + classFile.getClassName() +
+                ", classFile=" + classFile +
                 '}';
     }
 }

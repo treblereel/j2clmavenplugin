@@ -4,10 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.j2cl.common.SourceUtils;
 import com.google.javascript.jscomp.deps.ClosureBundler;
-import com.vertispan.j2cl.build.WatchService;
-import com.vertispan.j2cl.build.task.CachedPath;
 import com.vertispan.j2cl.build.task.Dependency;
-import com.vertispan.j2cl.build.task.Input;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.tools.Closure;
@@ -16,7 +13,6 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,21 +20,22 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.vertispan.j2cl.build.provided.BundleJarTask.BUNDLE_JS;
 
 public class BundleJarTask {
 
-    private final  TaskContext context;
+    private final TaskContext context;
     private final Project project;
     private final Runnable finish;
 
@@ -49,31 +46,35 @@ public class BundleJarTask {
     }
 
     public void finish() {
-        List<Project> deps = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-        Queue<Project> queue = new LinkedList<>();
-        queue.add(project);
 
-        while (!queue.isEmpty()) {
-            Project next = queue.poll();
-            if (!seen.contains(next.getKey())) {
-                seen.add(next.getKey());
-                deps.add(next);
-                for (Dependency dependency : next.getDependencies()) {
-                    if(((com.vertispan.j2cl.build.Dependency) dependency).belongsToScope(Dependency.Scope.RUNTIME)) {
-                        queue.add(dependency.getProject());
-                    }
+        List<Project> jsSources = Stream
+                .concat(
+                        project.getDependencies().stream()
+                                .filter(dependency -> ((com.vertispan.j2cl.build.Dependency) dependency).belongsToScope(Dependency.Scope.RUNTIME))
+                                .map(d -> (Project) d.getProject()),
+                        Stream.of(project)
+                ).collect(Collectors.toUnmodifiableList());
+
+        List<Project> buildOrder = new ArrayList<>();
+        Set<String> pendingProjectKeys = jsSources.stream().map(Project::getKey).collect(Collectors.toSet());
+        List<Project> remaining = jsSources.stream().sorted(Comparator.comparing(i -> i.getDependencies().size())).collect(Collectors.toList());
+        while (!remaining.isEmpty()) {
+            for (Iterator<Project> iterator = remaining.iterator(); iterator.hasNext(); ) {
+                Project input = iterator.next();
+                if (input.getDependencies().stream()
+                        .filter(dependency -> ((com.vertispan.j2cl.build.Dependency) dependency).belongsToScope(Dependency.Scope.RUNTIME))
+                        .noneMatch(dep -> pendingProjectKeys.contains(dep.getProject().getKey()))) {
+                    iterator.remove();
+                    pendingProjectKeys.remove(input.getKey());
+                    buildOrder.add(input);
                 }
             }
         }
 
-        List<Project> buildOrder = order(deps);
-        buildOrder.add(project);
-
         File initialScriptFile = context.config.getWebappDirectory().resolve(context.config.getInitialScriptFilename()).toFile();
         Map<String, Object> defines = new LinkedHashMap<>(context.config.getDefines());
 
-          //copy pulic resources
+        //copy public resources
 /*        List<Input> outputToCopy = Stream.concat(
                         Stream.of(project),
                         scope(project.getDependencies(), Dependency.Scope.RUNTIME).stream()
@@ -89,9 +90,11 @@ public class BundleJarTask {
         try {
 
             buildOrder.stream().map(proj -> {
-                Path path = context.outputFactory.create(project, OutputTypes.BUNDLED_JS).getOutputPath().resolve("results");
+                Path path = context.outputFactory.create(proj, OutputTypes.BUNDLED_JS).getOutputPath().resolve("results");
                 try {
-                    return Files.walk(path).filter(p -> BUNDLE_JS.matches(p)).map(p -> SourceUtils.FileInfo.create(path.relativize(p).toString(), p.toFile().getAbsolutePath())).collect(Collectors.toList());
+                    return Files.walk(path).filter(p -> BUNDLE_JS.matches(p))
+                            .map(p -> SourceUtils.FileInfo.create(path.relativize(p).toString(), p.toFile().getAbsolutePath()))
+                            .collect(Collectors.toList());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -183,7 +186,6 @@ public class BundleJarTask {
         }
 
 
-
         finish.run();
     }
 
@@ -208,7 +210,7 @@ public class BundleJarTask {
                 stack.pop();
                 continue;
             }
-            if(adjacencyList.get(key).isEmpty()) {
+            if (adjacencyList.get(key).isEmpty()) {
                 ordered.add(projects.get(key));
                 stack.pop();
                 adjacencyList.values().forEach(set -> set.remove(key));

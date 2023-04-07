@@ -3,6 +3,7 @@ package com.vertispan.j2cl.mojo.incremental.tasks;
 import com.google.j2cl.common.SourceUtils;
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.tools.GwtIncompatiblePreprocessor;
 
 import java.io.File;
@@ -19,7 +20,7 @@ public class StrippedSourcesTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
             return;
         }
@@ -27,10 +28,10 @@ public class StrippedSourcesTask extends Task {
         File output = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).results().toFile();
 
         List<SourceUtils.FileInfo> sources = Stream.concat(
-                        changeSetHolder.created.values().stream(),
-                        changeSetHolder.modified.values().stream()
-                ).filter(value -> JAVA_SOURCES.matches(value.getSourcePath()))
-                .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
+                        changeSetHolder.created.stream(),
+                        changeSetHolder.modified.stream()
+                ).filter(value -> JAVA_SOURCES.matches(value.relativePath))
+                .map(p -> SourceUtils.FileInfo.create(p.absolutePath.toString(), p.relativePath.toString()))
                 .collect(Collectors.toUnmodifiableList());
 
         GwtIncompatiblePreprocessor preprocessor = new GwtIncompatiblePreprocessor(output, context.log);

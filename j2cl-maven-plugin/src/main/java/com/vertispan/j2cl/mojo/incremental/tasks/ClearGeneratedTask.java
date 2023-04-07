@@ -2,6 +2,7 @@ package com.vertispan.j2cl.mojo.incremental.tasks;
 
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.mojo.incremental.Output;
 
 import java.io.File;
@@ -16,7 +17,7 @@ public class ClearGeneratedTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         Path output = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE).generated();
 
         if(Files.exists(output)) {

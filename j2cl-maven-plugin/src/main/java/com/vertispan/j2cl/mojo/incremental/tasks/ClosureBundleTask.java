@@ -8,6 +8,7 @@ import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.provided.ClosureTask;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.tools.Closure;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.SuffixFileFilter;
@@ -34,7 +35,7 @@ public class ClosureBundleTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
 
         Path transpiledJs = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results();
@@ -44,6 +45,7 @@ public class ClosureBundleTask extends Task {
 
 
         try {
+            //TODO dubs with ClosureTask param map
             Map<Path, SourceUtils.FileInfo> js = Stream.of(Files.walk(transpiledJs)
                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
                                     .map(p -> Pair.of(transpiledJs ,SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), transpiledJs.relativize(p).toString()))),
@@ -82,11 +84,17 @@ public class ClosureBundleTask extends Task {
                     CompilerOptions.LanguageMode.NO_TRANSPILE,
                     Collections.singletonMap(
                             sources.getAbsolutePath(),
-                            js.values()
-                                    .stream()
-                                    .map(p -> p.originalPath())
-                                    .collect(Collectors.toUnmodifiableList())
-                    ),
+                            Stream.of(Files.walk(transpiledJs)
+                                                    .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
+                                                    .map(p -> transpiledJs.relativize(p).toString()),
+                                            Files.walk(bytecode)
+                                                    .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
+                                                    .map(p -> bytecode.relativize(p).toString()),
+                                            Files.walk(bytecodeGenerated)
+                                                    .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
+                                                    .map(p -> bytecodeGenerated.relativize(p).toString()))
+                                    .flatMap(s -> s)
+                                    .collect(Collectors.toUnmodifiableList())),
                     sources,
                     Collections.emptyList(),
                     Collections.emptyMap(),

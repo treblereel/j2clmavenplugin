@@ -1,9 +1,8 @@
 package com.vertispan.j2cl.mojo.incremental.tasks;
 
-import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 public class TaskGroup {
@@ -14,12 +13,10 @@ public class TaskGroup {
         tasks.add(task);
     }
 
-    public void execute(List<WatchService.ChangeSetHolder> changeSet) {
+    public void execute(ChangeSetHolder changeSet) {
         for (Task task : tasks) {
-            for (WatchService.ChangeSetHolder changeSer : changeSet) {
-                System.out.println("Executing " + task + " on " + changeSer.project);
-                task.accept(changeSer);
-            }
+            System.out.println("Executing " + task + " on " + changeSet.project);
+            task.accept(changeSet);
         }
     }
 }

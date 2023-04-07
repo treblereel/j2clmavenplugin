@@ -73,6 +73,9 @@ public class ClassFile {
         StringBuilder sb = new StringBuilder();
         sb.append(className);
         sb.append(" ");
+        sb.append("extends:");
+        sb.append(extendsClass);
+        sb.append("");
         sb.append(hash());
         referencedClasses.stream().forEach(r -> sb.append(" ").append(r));
         return sb.toString();

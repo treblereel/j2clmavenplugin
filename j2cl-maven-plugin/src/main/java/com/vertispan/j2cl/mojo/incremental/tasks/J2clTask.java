@@ -5,6 +5,7 @@ import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.Input;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.tools.J2cl;
 
 import java.io.File;
@@ -30,8 +31,8 @@ public class J2clTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
-        if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
+    public void accept(ChangeSetHolder changeSetHolder) {
+        if (changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
             return;
         }
 
@@ -46,6 +47,9 @@ public class J2clTask extends Task {
                 .map(dependency -> context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS).results())
                 .map(Path::toFile)
                 .forEach(classpathDirs::add);
+
+        File strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).results().toFile();
+        classpathDirs.add(strippedSources);
 
         File classOutputDir = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results().toFile();
         Path generated = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
@@ -63,20 +67,34 @@ public class J2clTask extends Task {
                     .map(p -> SourceUtils.FileInfo.create(p.toFile().getAbsolutePath(), generated.relativize(p).toString()));
 
             List<SourceUtils.FileInfo> sources = Stream.concat(Stream.concat(
-                            changeSetHolder.created.values().stream(),
-                            changeSetHolder.modified.values().stream()
-                    ).filter(value -> JAVA_SOURCES.matches(value.getSourcePath()))
-                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString())),
-                    generatedJavaFiles)
+                                            changeSetHolder.created.stream(),
+                                            changeSetHolder.modified.stream()
+                                    ).filter(value -> JAVA_SOURCES.matches(value.relativePath))
+                                    .map(p -> SourceUtils.FileInfo.create(p.absolutePath.toString(), p.relativePath.toString())),
+                            generatedJavaFiles)
                     .collect(Collectors.toUnmodifiableList());
 
+
+            for (File classpathDir : classpathDirs) {
+                System.out.println("classpathDir: " + classpathDir);
+
+            }
+
+            for (SourceUtils.FileInfo source : sources) {
+                System.out.println("Source: " + source.sourcePath());
+            }
             List<SourceUtils.FileInfo> nativeSources = Stream.concat(Stream.concat(
-                                            changeSetHolder.created.values().stream(),
-                                            changeSetHolder.modified.values().stream()
-                                    ).filter(value -> NATIVE_JS_SOURCES.matches(value.getSourcePath()))
-                                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString())),
+                                            changeSetHolder.created.stream(),
+                                            changeSetHolder.modified.stream()
+                                    ).filter(value -> NATIVE_JS_SOURCES.matches(value.relativePath))
+                                    .map(p -> SourceUtils.FileInfo.create(p.absolutePath.toString(), p.relativePath.toString())),
                             generatedNativeJsFiles)
                     .collect(Collectors.toUnmodifiableList());
+
+            for (SourceUtils.FileInfo source : nativeSources) {
+                System.out.println("nativeSources: " + source.sourcePath());
+            }
+
 
             if (!j2cl.transpile(sources, nativeSources)) {
                 throw new IllegalStateException("Error while running J2CL");

@@ -228,6 +228,19 @@ public class ClosureTask extends TaskFactory {
                                     .map(Path::toString)
                                     .collect(Collectors.toUnmodifiableList())
                     );
+
+
+                    System.out.println("proj : " + project.getKey());
+                    System.out.println("sources : " + sources.getAbsolutePath());
+
+                    js.forEach((k, v) -> {
+                        System.out.println("k: " + k);
+                        v.forEach(z ->{
+                            System.out.println("        " + z);
+                        });
+                    });
+
+
                 } else {
                     // For other modes, we're already asking closure to get work done, let's
                     sources = new File(jsOutputDir, Closure.SOURCES_DIRECTORY_NAME);//write to the same place as in bundle mode

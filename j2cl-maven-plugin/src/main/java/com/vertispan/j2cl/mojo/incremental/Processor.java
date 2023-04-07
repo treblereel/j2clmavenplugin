@@ -28,13 +28,13 @@ import javassist.NotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,15 +66,19 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
     private final Set<WatchService.ChangeSetHolder> lastBuildRequest = new HashSet<>();
 
-    private final Set<WatchService.ChangeSetHolder> current = new HashSet<>();
-
     public void requestBuild(Set<WatchService.ChangeSetHolder> projectsToBuild) {
         if (projectsToBuild.isEmpty()) {
             return;
         }
 
         projectsToBuild.addAll(lastBuildRequest);
-        current.addAll(projectsToBuild);
+        Map<Project, ChangeSetHolder> current = new ConcurrentHashMap<>();
+        for (WatchService.ChangeSetHolder holder : projectsToBuild) {
+            current.putIfAbsent(holder.project, new ChangeSetHolder(holder.project));
+            holder.created.values().stream().map(h -> new ChangeSetEntry(h.getSourcePath(), h.getAbsolutePath())).forEach(current.get(holder.project).created::add);
+            holder.modified.values().stream().map(h -> new ChangeSetEntry(h.getSourcePath(), h.getAbsolutePath())).forEach(current.get(holder.project).modified::add);
+            holder.deleted.forEach(d -> current.get(holder.project).deleted.add(d));
+        }
 
         PropertyTrackingConfig config = new PropertyTrackingConfig(buildService.getConfig());
         config.getBootstrapClasspath();
@@ -111,7 +115,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
             System.out.println("FINISHED IN " + (System.currentTimeMillis() - start) + "ms");
         };
         BundleJarTask bundleJarTask = new BundleJarTask(context, root, runnable);
-        new TaskGroupExecutor(taskGroup, bundleJarTask).execute(current);
+        new TaskGroupExecutor(taskGroup, bundleJarTask, context).execute();
     }
 
 

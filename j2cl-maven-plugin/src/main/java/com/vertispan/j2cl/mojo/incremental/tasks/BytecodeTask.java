@@ -4,6 +4,7 @@ import com.google.j2cl.common.SourceUtils;
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
+import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.tools.Javac;
 
 import java.io.File;
@@ -25,7 +26,7 @@ public class BytecodeTask extends Task {
     }
 
     @Override
-    public void accept(WatchService.ChangeSetHolder changeSetHolder) {
+    public void accept(ChangeSetHolder changeSetHolder) {
         if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
             return;
         }
@@ -33,10 +34,10 @@ public class BytecodeTask extends Task {
         Project project = changeSetHolder.project;
 
         List<SourceUtils.FileInfo> sources = Stream.concat(
-                        changeSetHolder.created.values().stream(),
-                        changeSetHolder.modified.values().stream()
-                ).filter(value -> JAVA_SOURCES.matches(value.getSourcePath()))
-                .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
+                        changeSetHolder.created.stream(),
+                        changeSetHolder.modified.stream()
+                ).filter(value -> JAVA_SOURCES.matches(value.absolutePath))
+                .map(p -> SourceUtils.FileInfo.create(p.absolutePath.toString(), p.relativePath.toString()))
                 .collect(Collectors.toUnmodifiableList());
 
         File classOutputDir = context.outputFactory.create(project, OutputTypes.BYTECODE).results().toFile();
@@ -55,10 +56,6 @@ public class BytecodeTask extends Task {
                 .stream()
                 .map(File::new)
                 .collect(Collectors.toUnmodifiableList());
-
-        for (SourceUtils.FileInfo source : sources) {
-            System.out.println("compile " + source.sourcePath() + " " + source.originalPath());
-        }
 
         try {
             Javac javac = new Javac(context.log, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, bootstrapClasspath);
