@@ -28,6 +28,7 @@ import javassist.NotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.vertispan.j2cl.build.provided.J2clTask.NATIVE_JS_SOURCES;
 import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_BYTECODE;
 
 public class Processor implements WatchService.IncrementalProcessorDelegate {
@@ -58,9 +60,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
         this.buildService = buildService;
         this.mavenLog = mavenLog;
         pool.appendSystemPath();
-
-        System.out.println("Processor " + buildService.getDiskCache().cacheDir.toPath());
-
         outputFactory = new Output.OutputFactory(buildService.getDiskCache().cacheDir.toPath());
     }
 
@@ -80,6 +79,15 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
             holder.deleted.forEach(d -> current.get(holder.project).deleted.add(d));
         }
 
+        for (Map.Entry<Project, ChangeSetHolder> entry : current.entrySet()) {
+            Set<ChangeSetEntry> natives = Stream.concat(entry.getValue().created.stream(), entry.getValue().modified.stream())
+                    .filter(p -> NATIVE_JS_SOURCES.matches(p.absolutePath)).collect(Collectors.toUnmodifiableSet());
+            for (ChangeSetEntry n : natives) {
+                String absolutePath = n.absolutePath.toFile().toString().replace(".native.js", ".java");
+                String relativePath = n.relativePath.toFile().toString().replace(".native.js", ".java");
+                entry.getValue().modified.add(new ChangeSetEntry(Paths.get(relativePath), Paths.get(absolutePath)));
+            }
+        }
         PropertyTrackingConfig config = new PropertyTrackingConfig(buildService.getConfig());
         config.getBootstrapClasspath();
 
@@ -96,14 +104,13 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
         taskGroup.addTask(new J2clTask(context));
         taskGroup.addTask(new ClosureBundleTask(context));
 
-
         System.out.println("requestBuild ");
 
         projectsToBuild.forEach(p -> {
             System.out.println("project " + p.project.getKey());
-            System.out.println("modified " + p.created);
+            System.out.println("created " + p.created);
             System.out.println("modified " + p.modified);
-            System.out.println("modified " + p.deleted);
+            System.out.println("deleted " + p.deleted);
         });
 
 
@@ -123,7 +130,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
 
     public void ready() {
-        System.out.println("ready " + projectListMap.size());
         projectListMap.keySet()
                 .stream()
                 .flatMap(p -> p.getDependencies().stream())
@@ -137,7 +143,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 });
 
         projectListMap.forEach((project, folders) -> {
-            System.out.println("project " + project.getKey());
             Path byteCodePath = outputFactory.create(project, OutputTypes.BYTECODE).results();
             try {
                 // is it the same as above?
@@ -172,10 +177,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                     files.get(dependency).addIn(k);
                 }
             }
-        });
-
-        files.forEach((k, v) -> {
-            System.out.println("file " + k + " " + v);
         });
     }
 
@@ -220,7 +221,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
 
     public void init(Map<Project, List<Path>> projectListMap) {
-        System.out.println("init " + projectListMap.size());
         this.projectListMap.putAll(projectListMap);
     }
 

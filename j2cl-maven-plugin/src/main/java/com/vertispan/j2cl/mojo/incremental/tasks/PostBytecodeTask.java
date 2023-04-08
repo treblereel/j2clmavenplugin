@@ -1,7 +1,5 @@
 package com.vertispan.j2cl.mojo.incremental.tasks;
 
-import com.vertispan.j2cl.build.DiskCache;
-import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.mojo.incremental.ChangeSetEntry;
@@ -14,15 +12,14 @@ import javassist.CtMethod;
 import javassist.Modifier;
 import javassist.NotFoundException;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,26 +34,14 @@ public class PostBytecodeTask extends Task {
     @Override
     public void accept(ChangeSetHolder changeSetHolder) {
         Map<String, Definition> removed = new HashMap<>();
-        System.out.println("accept " + changeSetHolder.created + " " + changeSetHolder.modified + " " + changeSetHolder.deleted);
-
         Project project = changeSetHolder.project;
         Path results = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
 
-
-        context.files.values().forEach(d -> {
-            System.out.println("cache " + d);
-            d.getOut().forEach(dd -> {
-                System.out.println(" out " + dd);
-            });
-
-            d.getIn().forEach(dd -> {
-                System.out.println(" in " + dd);
-            });
-
-        });
-
         Set<Path> removeFromPool = new HashSet<>();
-        changeSetHolder.modified.stream().map(m -> m.relativePath).forEach(removeFromPool::add);
+        changeSetHolder.modified
+                .stream()
+                .filter(entry -> JAVA_SOURCES.matches(entry.relativePath))
+                .map(m -> m.relativePath).forEach(removeFromPool::add);
         removeFromPool.addAll(changeSetHolder.deleted);
 
         removeFromPool.stream()
@@ -78,10 +63,6 @@ public class PostBytecodeTask extends Task {
             });
         });
 
-        changeSetHolder.created.forEach((entry) -> {
-            processByteCodePath(project, results, entry.relativePath);
-        });
-
 
         changeSetHolder.created.forEach((entrye) -> {
             processByteCodePath(project, results, entrye.relativePath);
@@ -89,89 +70,69 @@ public class PostBytecodeTask extends Task {
 
         Set<String> doRecompute = new HashSet<>();
 
-        changeSetHolder.modified.forEach((entry) -> {
-            Definition oldDefinition = removed.get(entry.relativePath.toString().replace('/', '.').replace(".java", ""));
-            Definition newDefinition = processByteCodePath(project, results, entry.relativePath);
-            newDefinition.getIn().addAll(oldDefinition.getIn());
-            boolean theSame = oldDefinition.generateHash().equals(newDefinition.generateHash());
-            System.out.println("Modified " + entry.relativePath + " " + theSame);
-
-            System.out.println("old " + oldDefinition);
-
-            if(!theSame) {
-                System.out.println("Different " + entry.relativePath);
-                doRecompute.addAll(newDefinition.getIn());
-            }
-        });
+        changeSetHolder.modified
+                .stream()
+                .filter(entry -> JAVA_SOURCES.matches(entry.relativePath))
+                .forEach((entry) -> {
+                    Definition oldDefinition = removed.get(entry.relativePath.toString().replace('/', '.').replace(".java", ""));
+                    Definition newDefinition = processByteCodePath(project, results, entry.relativePath);
+                    newDefinition.getIn().addAll(oldDefinition.getIn());
+                    boolean theSame = oldDefinition.generateHash().equals(newDefinition.generateHash());
+                    if (!theSame) {
+                        doRecompute.addAll(newDefinition.getIn());
+                    }
+                });
 
 
         doRecompute.forEach(in -> {
             //check if this is already in the queue
-                Project project1 = context.files.get(in).getProject();
-                Path classFile = Paths.get(in.replace(".", "/") + ".java");
+            Project project1 = context.files.get(in).getProject();
+            Path classFile = Paths.get(in.replace(".", "/") + ".java");
 
-                if(!context.current.entrySet().stream().filter(set -> set.getKey().equals(project1))
-                        .flatMap(set -> set.getValue().modified.stream())
-                        .map(m -> m.absolutePath)
-                        .filter(m -> m.equals(classFile))
-                        .findFirst()
-                        .isPresent()){
-                for(String root: ((com.vertispan.j2cl.build.Project)project1).getSourceRoots()) {
+            if (!context.current.entrySet().stream().filter(set -> set.getKey().equals(project1))
+                    .flatMap(set -> set.getValue().modified.stream())
+                    .map(m -> m.absolutePath)
+                    .filter(m -> m.equals(classFile))
+                    .findFirst()
+                    .isPresent()) {
+                for (String root : ((com.vertispan.j2cl.build.Project) project1).getSourceRoots()) {
                     Path maybe = Paths.get(root).resolve(classFile);
-                    if(Files.exists(maybe)) {
+                    if (Files.exists(maybe)) {
                         ChangeSetEntry entry = new ChangeSetEntry(classFile, maybe);
-                        System.out.println("YESS " + entry);
                         context.current.putIfAbsent((com.vertispan.j2cl.build.Project) project1, new ChangeSetHolder(project1));
                         context.current.get(project1).modified.add(entry);
                         context.addToBuildQueue((com.vertispan.j2cl.build.Project) project1);
                         break;
                     }
-
-/*                    Path maybe = Paths.get(root).resolve(fqdn);
-                    System.out.println(" path? " + root + " " + Files.exists(maybe));
-                    if(Files.exists(maybe)) {
-                        ChangeSetEntry entry = new ChangeSetEntry(maybe, fqdn);
-
-
-                        DiskCache.CacheEntry cacheEntry = new DiskCache.CacheEntry(fqdn, maybe, null);
-
-
-
-
-                        Optional<ChangeSetHolder> holder = context.current.stream().filter(set -> set.project.equals(project1)).findFirst();
-                        if(holder.isPresent()) {
-                            holder.get().modified.put(fqdn, cacheEntry);
-                        } else {
-                            Map<Path, DiskCache.CacheEntry> modified = new HashMap<>();
-                            modified.put(fqdn, cacheEntry);
-                            context.current.get(project1).  (new ChangeSetHolder(project1, new HashMap<>(), modified, Collections.emptySet()));
-                        }
-
-
-
-
-                        context.current.add(new ChangeSetHolder(project1, new HashMap<>(), new HashMap<>(), new HashMap<>()));
-                        break;
-                    }*/
-
                 }
-
-
-                } else {
-                    System.out.println("already in queue");
-                }
-
-
-                System.out.println("recomputing " + in + " " + project1.getKey());
+            }
+            System.out.println("recomputing " + in + " " + project1.getKey());
         });
+
+        //override native.js files
+        changeSetHolder.modified
+                .stream()
+                .filter(entry -> JAVA_SOURCES.matches(entry.absolutePath))
+                .filter(entry -> Files.exists(Paths.get(entry.absolutePath.toString().replace(".java", ".native.js"))))
+                .forEach(entry -> {
+                    Path nativeJs = Paths.get(entry.absolutePath.toString().replace(".java", ".native.js"));
+                    Path dist = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE)
+                            .results()
+                            .resolve(entry.relativePath.toString()
+                                    .replace(".java", ".native.js"));
+                    try {
+                        Files.copy(nativeJs, dist, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                });
 
     }
 
     private Definition processByteCodePath(Project project, Path results, Path path) {
         String classname = path.toString().replace('/', '.').replace(".java", "");
         String classBytecode = path.toString().replace(".java", ".class");
-
-        System.out.println("created " + classname + " " + classBytecode + " " + context.files.get(classname));
         Definition definition;
         try {
             context.pool.appendClassPath(results.resolve(classBytecode).toString());
