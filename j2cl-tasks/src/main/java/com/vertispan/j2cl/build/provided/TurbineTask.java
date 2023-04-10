@@ -76,6 +76,7 @@ public class TurbineTask extends JavacTask {
             try {
                 Main.Result result = Main.compile(
                         TurbineOptions.builder()
+                                //.setProcessorPath(ImmutableList.of()
                                 .setSources(ImmutableList.copyOf(sources))
                                 .setOutput(output.toString())
                                 .setClassPath(ImmutableList.copyOf(deps))

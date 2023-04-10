@@ -1,6 +1,7 @@
 package com.vertispan.j2cl.build;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Represents a set of sources and the dependencies used to build them. The sourceRoots property

@@ -55,6 +55,11 @@ public class Javac {
     }
 
     public boolean compile(List<FileInfo> modifiedJavaFiles) {
+        if (modifiedJavaFiles.isEmpty()) {
+            log.debug("No files to compile");
+            return true;
+        }
+
         // preCompile java files with javac into classesDir
         Iterable<? extends JavaFileObject> modifiedFileObjects = fileManager.getJavaFileObjectsFromStrings(
                 modifiedJavaFiles.stream()

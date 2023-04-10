@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.turbine.diag.TurbineError;
 import com.google.turbine.main.Main;
 import com.google.turbine.options.TurbineOptions;
+import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -32,18 +34,23 @@ public class TurbineTask extends Task {
     public void accept(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
         if (context.application.equals(project)) {
-            return;
+            //return;
         }
         List<File> extraClasspath = context.config.getExtraClasspath();
         Path strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).results();
+        Path GEN = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("GEN.jar");
         Output strippedBytecodeHeaders = context.outputFactory.create(project, OutputTypes.STRIPPED_BYTECODE_HEADERS);
         Path results = strippedBytecodeHeaders.results();
         delete(results);
         List<String> deps = Stream.concat(project.getDependencies()
                         .stream()
-                        .map(dependency -> context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
+                        .map(dependency -> {
+                            Project dep = dependency.getProject();
+                            //System.out.println("dep: " + dep.getKey() + " " + project.isProcesor());
+
+                            return context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
                                 .results()
-                                .resolve("output.jar")).
+                                .resolve("output.jar");}).
                         map(Path::toString),
                 extraClasspath.stream().map(File::toString)
         ).collect(Collectors.toUnmodifiableList());
@@ -55,10 +62,33 @@ public class TurbineTask extends Task {
             throw new RuntimeException(e);
         }
         File output = results.resolve("output.jar").toFile();
+
+        List<String> apt = project.getDependencies().stream().filter(Dependency::isAPT)
+                .map(Dependency::getJar)
+                .map(File::getAbsolutePath)
+                .collect(Collectors.toUnmodifiableList());
+
+        List<String> processors = project.getDependencies().stream().filter(Dependency::isAPT)
+                .map(Dependency::getProcessors)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toUnmodifiableList());
+
+
+        for (String s : apt) {
+            System.out.println("APT : " + s);
+        }
+
+        for (String s : processors) {
+            System.out.println("processors : " + s);
+        }
+
         try {
             long start = System.currentTimeMillis();
             Main.Result result = Main.compile(
                     TurbineOptions.builder()
+                            .setProcessorPath(ImmutableList.copyOf(apt))
+                            .setProcessors(ImmutableList.copyOf(processors))
+                            .setGensrcOutput(GEN.toString())
                             .setSources(ImmutableList.copyOf(sources))
                             .setOutput(output.toString())
                             .setClassPath(ImmutableList.copyOf(deps))
@@ -76,6 +106,20 @@ public class TurbineTask extends Task {
             throw new RuntimeException(e);
         }
     }
+
+/*    private boolean isApt(String sourceRoot) {
+        try {
+            ZipFile zipFile = new ZipFile(sourceRoot);
+            ZipEntry entry = zipFile.getEntry("META-INF/services/javax.annotation.processing.Processor");
+            if (entry != null) {
+                return true;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        return false;
+    }*/
 
     private void delete(Path output) {
         Stack<File> stack = new Stack<>();

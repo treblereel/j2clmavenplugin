@@ -1,5 +1,17 @@
 package com.vertispan.j2cl.build;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
 /**
  * A dependency is a reference to another project's contents, scoped to indicate whether these are
  * required to be compiled against, or linked against (and so are required at runtime). The default
@@ -12,6 +24,11 @@ public class Dependency implements com.vertispan.j2cl.build.task.Dependency {
     private Project project;
 
     private Scope scope = com.vertispan.j2cl.build.task.Dependency.Scope.BOTH;
+
+    private File jar;
+
+    private Optional<Boolean> isAPT = Optional.empty();
+    private Set<String> processors = new HashSet<>();
 
     public boolean belongsToScope(Scope scope) {
         //TODO it is weird to let BOTH be passed as a param, probably make that impossible and clean this up
@@ -43,5 +60,64 @@ public class Dependency implements com.vertispan.j2cl.build.task.Dependency {
 
     public void setScope(Scope scope) {
         this.scope = scope;
+    }
+
+    public void setJar(File jar) {
+        this.jar = jar;
+    }
+
+    @Override
+    public File getJar() {
+        return jar;
+    }
+
+
+    @Override
+    public boolean isAPT() {
+        try {
+            if (isAPT.isEmpty()) {
+                if (project.isJsZip()) {
+                    isAPT = Optional.of(false);
+                    return false;
+                }
+                if (jar.exists()) {
+                    try {
+                        ZipFile zipFile = new ZipFile(jar);
+                        ZipEntry entry = zipFile.getEntry("META-INF/services/javax.annotation.processing.Processor");
+                        if (entry != null) {
+                            try (BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)))) {
+                                String line;
+                                while ((line = reader.readLine()) != null) {
+                                    processors.add(line);
+                                }
+                                if(!processors.isEmpty()) {
+                                    this.isAPT = Optional.of(true);
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            this.isAPT = Optional.of(false);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        return isAPT.get();
+    }
+
+    @Override
+    public Set<String> getProcessors() {
+        if (!isAPT()) {
+            throw new RuntimeException(String.format("This dependency [%s] is not an APT dependency, so it has no processors", project.getKey()));
+        }
+        return processors;
     }
 }
