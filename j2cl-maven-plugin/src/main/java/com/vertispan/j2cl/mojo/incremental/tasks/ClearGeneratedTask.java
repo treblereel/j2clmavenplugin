@@ -17,7 +17,7 @@ public class ClearGeneratedTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         Path output = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE).generated();
 
         if(Files.exists(output)) {
@@ -40,6 +40,8 @@ public class ClearGeneratedTask extends Task {
                 }
         }
         output.toFile().mkdirs();
+
+        return true;
     }
 
 }

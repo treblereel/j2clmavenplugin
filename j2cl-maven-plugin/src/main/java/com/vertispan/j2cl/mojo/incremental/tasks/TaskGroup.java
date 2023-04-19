@@ -13,10 +13,14 @@ public class TaskGroup {
         tasks.add(task);
     }
 
-    public void execute(ChangeSetHolder changeSet) {
+    public boolean execute(ChangeSetHolder changeSet) {
         for (Task task : tasks) {
             System.out.println("Executing " + task + " on " + changeSet.project);
-            task.accept(changeSet);
+            boolean result = task.apply(changeSet);
+            if(!result) {
+                return false;
+            }
         }
+        return true;
     }
 }

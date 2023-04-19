@@ -32,7 +32,7 @@ public class PostBytecodeTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         Map<String, Definition> removed = new HashMap<>();
         Project project = changeSetHolder.project;
         Path results = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
@@ -124,9 +124,10 @@ public class PostBytecodeTask extends Task {
                         Files.copy(nativeJs, dist, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     } catch (IOException e) {
                         e.printStackTrace();
-                        throw new RuntimeException(e);
+                        return; //TODO: handle this
                     }
                 });
+        return true;
 
     }
 

@@ -94,6 +94,10 @@ public class TurbineTask extends JavacTask {
     }
 
     public static void extractJar(File zipFile, Path target, BuildLog context) {
+        if(!zipFile.exists()) {
+            return;
+        }
+
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry zipEntry = zis.getNextEntry();
             while (zipEntry != null) {

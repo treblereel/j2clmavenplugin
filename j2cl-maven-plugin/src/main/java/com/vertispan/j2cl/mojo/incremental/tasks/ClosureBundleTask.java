@@ -35,7 +35,7 @@ public class ClosureBundleTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
 
         Path transpiledJs = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results();
@@ -48,24 +48,25 @@ public class ClosureBundleTask extends Task {
             //TODO dubs with ClosureTask param map
             Map<Path, SourceUtils.FileInfo> js = Stream.of(Files.walk(transpiledJs)
                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                    .map(p -> Pair.of(transpiledJs ,SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), transpiledJs.relativize(p).toString()))),
+                                    .map(p -> Pair.of(transpiledJs, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), transpiledJs.relativize(p).toString()))),
                             Files.walk(bytecode)
                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
                                     .map(p -> Pair.of(bytecode, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecode.relativize(p).toString()))),
                             Files.walk(bytecodeGenerated)
                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                    .map(p -> Pair.of(bytecodeGenerated,SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecodeGenerated.relativize(p).toString()))))
+                                    .map(p -> Pair.of(bytecodeGenerated, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecodeGenerated.relativize(p).toString()))))
                     .flatMap(s -> s)
                     .collect(HashMap::new, (m, p) -> m.put(p.getKey(), p.getValue()), HashMap::putAll);
 
             String fileNameKey = project.getKey().replaceAll("[^\\-_a-zA-Z0-9.]", "-");
-            String outputFile = closureOutputDir + "/" + fileNameKey + ".js";
+            String outputFile = closureOutputDir + "/" + fileNameKey + BUNDLE_JS_EXTENSION;
 
             Path outputFilePath = Paths.get(outputFile);
+
             if (js.isEmpty()) {
                 // if there are no js sources, write an empty file and exit
                 Files.createFile(outputFilePath);
-                return;// nothing to do
+                return true;// nothing to do
             }
 
             Closure closureCompiler = new Closure(context.log);
@@ -76,6 +77,8 @@ public class ClosureBundleTask extends Task {
             for (Path path : js.keySet()) {
                 FileUtils.copyDirectory(path.toFile(), sources);
             }
+
+            String[] oldFiles = closureOutputDir.list(new SuffixFileFilter(BUNDLE_JS_EXTENSION));
 
             // create the JS bundle, only ordering these files
             boolean success = closureCompiler.compile(
@@ -109,18 +112,38 @@ public class ClosureBundleTask extends Task {
             );
 
             if (!success) {
-                throw new IllegalStateException("Closure Compiler failed, check log for details");
+                context.log.error("Closure Compiler failed, check log for details");
+                return false;
             }
 
-            for (String old : closureOutputDir.list(new SuffixFileFilter(BUNDLE_JS_EXTENSION))) {
-                closureOutputDir.toPath().resolve(old).toFile().delete();
+
+            //clean up old files
+            if (oldFiles != null) {
+                for (String old : oldFiles) {
+                    if (!old.equals(fileNameKey + BUNDLE_JS_EXTENSION)) {
+                        closureOutputDir.toPath().resolve(old).toFile().delete();
+                    }
+                }
             }
-            Files.move(outputFilePath, outputFilePath.resolveSibling(fileNameKey + BUNDLE_JS_EXTENSION));
+            //copy the file to the webapp directory
+            File initialScriptFile = context.config.getWebappDirectory().resolve(context.config.getInitialScriptFilename()).toFile();
+            File outputDir = initialScriptFile.getParentFile();
+            Files.copy(outputFilePath, outputDir.toPath().resolve(fileNameKey + BUNDLE_JS_EXTENSION), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            //copy the sourcemap to the webapp directory
+            Path sourcesDir = closureOutputDir.toPath().resolve(Closure.SOURCES_DIRECTORY_NAME);
+            Path destSourcesDir = outputDir.toPath().resolve(Closure.SOURCES_DIRECTORY_NAME);
+
+            //copy contents of sources dir
+            if (Files.exists(sourcesDir)) {
+                FileUtils.copyDirectory(sourcesDir.toFile(), destSourcesDir.toFile());
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            return false;
         }
 
-
+        return true;
     }
 }

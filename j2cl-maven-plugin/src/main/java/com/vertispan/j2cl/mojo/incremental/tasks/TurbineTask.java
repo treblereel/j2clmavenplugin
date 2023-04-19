@@ -31,14 +31,13 @@ public class TurbineTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
-        if (context.application.equals(project)) {
-            //return;
-        }
         List<File> extraClasspath = context.config.getExtraClasspath();
         Path strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).results();
-        Path GEN = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("GEN.jar");
+        Path generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
+
+        Path generatedJar = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("GEN.jar");
         Output strippedBytecodeHeaders = context.outputFactory.create(project, OutputTypes.STRIPPED_BYTECODE_HEADERS);
         Path results = strippedBytecodeHeaders.results();
         delete(results);
@@ -59,7 +58,7 @@ public class TurbineTask extends Task {
         try (Stream<Path> walk = Files.walk(strippedSources)) {
             walk.filter(file -> JAVA_SOURCES.matches(file)).forEach(file -> sources.add(file.toString()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            return false;
         }
         File output = results.resolve("output.jar").toFile();
 
@@ -86,9 +85,9 @@ public class TurbineTask extends Task {
             long start = System.currentTimeMillis();
             Main.Result result = Main.compile(
                     TurbineOptions.builder()
-                            .setProcessorPath(ImmutableList.copyOf(apt))
-                            .setProcessors(ImmutableList.copyOf(processors))
-                            .setGensrcOutput(GEN.toString())
+                            //.setProcessorPath(ImmutableList.copyOf(apt))
+                            //.setProcessors(ImmutableList.copyOf(processors))
+                            //.setGensrcOutput(generatedJar.toString())
                             .setSources(ImmutableList.copyOf(sources))
                             .setOutput(output.toString())
                             .setClassPath(ImmutableList.copyOf(deps))
@@ -98,28 +97,16 @@ public class TurbineTask extends Task {
 
             context.log.debug("turbine finished: " + result + " in " + (System.currentTimeMillis() - start) + "ms");
             extractJar(output, results, context.log);
+            extractJar(generatedJar.toFile(), generatedClassesDir, context.log);
         } catch (TurbineError e) {
             // usually it means, it's an apt that can't be processed, log it
             context.log.info(e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            return false;
         }
+        return true;
     }
-
-/*    private boolean isApt(String sourceRoot) {
-        try {
-            ZipFile zipFile = new ZipFile(sourceRoot);
-            ZipEntry entry = zipFile.getEntry("META-INF/services/javax.annotation.processing.Processor");
-            if (entry != null) {
-                return true;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-        return false;
-    }*/
 
     private void delete(Path output) {
         Stack<File> stack = new Stack<>();

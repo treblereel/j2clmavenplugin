@@ -20,9 +20,9 @@ public class StrippedSourcesTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
-            return;
+            return true;
         }
 
         File output = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).results().toFile();
@@ -36,5 +36,6 @@ public class StrippedSourcesTask extends Task {
 
         GwtIncompatiblePreprocessor preprocessor = new GwtIncompatiblePreprocessor(output, context.log);
         preprocessor.preprocess(sources);
+        return true;
     }
 }

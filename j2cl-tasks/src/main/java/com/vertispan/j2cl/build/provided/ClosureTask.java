@@ -91,6 +91,9 @@ public class ClosureTask extends TaskFactory {
 
     /** Strips off any prefix and returns an absolute path describing where to copy the file */
     public static void copiedOutputPath(Path outputDirectory, CachedPath fileToCopy) throws IOException {
+
+        System.out.println("outputDirectory " + outputDirectory + " < " + fileToCopy);
+
         Path sourcePath = fileToCopy.getSourcePath();
         final Path outputPath;
         if (IN_META_INF_RESOURCES.matches(sourcePath)) {

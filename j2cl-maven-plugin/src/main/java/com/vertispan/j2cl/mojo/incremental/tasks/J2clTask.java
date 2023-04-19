@@ -10,12 +10,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.vertispan.j2cl.build.provided.J2clTask.*;
 import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_SOURCES;
 
 public class J2clTask extends Task {
@@ -29,9 +29,9 @@ public class J2clTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         if (changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
-            return;
+            return true;
         }
 
         Project project = changeSetHolder.project;
@@ -67,27 +67,35 @@ public class J2clTask extends Task {
                             generatedJavaFiles)
                     .collect(Collectors.toUnmodifiableList());
 
-            Path results = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
 
-            Stream<SourceUtils.FileInfo> natives = Files.walk(results)
-                    .filter(NATIVE_JS_SOURCES::matches)
-                    .map(p -> SourceUtils.FileInfo.create(p.toFile().getAbsolutePath(), results.relativize(p).toString()));
+            List<SourceUtils.FileInfo> nativeSources = new ArrayList<>();
+            //native sources can be in the src and in the generated folders
+            for (SourceUtils.FileInfo source : sources) {
+                String nativeJsSource = source.sourcePath().replace(".java", ".native.js");
+                String nativeJsOriginal = source.originalPath().replace(".java", ".native.js");
+                Path nativeJsSourcePath = Paths.get(nativeJsSource);
 
-            Stream<SourceUtils.FileInfo> generatedNatives = Files.walk(generated)
-                    .filter(NATIVE_JS_SOURCES::matches)
-                    .map(p -> SourceUtils.FileInfo.create(p.toFile().getAbsolutePath(), generated.relativize(p).toString()));
+                if(Files.exists(nativeJsSourcePath)) {
+                    nativeSources.add(SourceUtils.FileInfo.create(nativeJsSource, nativeJsOriginal));
+                }
 
-            List<SourceUtils.FileInfo> nativeSources = Stream.concat(natives, generatedNatives)
-                    .collect(Collectors.toUnmodifiableList());
+                String generatedNativeJs = generated.resolve(nativeJsOriginal).toFile().getAbsolutePath();
+                Path generatedNativeJsPath = Paths.get(generatedNativeJs);
+
+                if(Files.exists(generatedNativeJsPath)) {
+                    nativeSources.add(SourceUtils.FileInfo.create(generatedNativeJs, nativeJsOriginal));
+                }
+            }
 
             if (!j2cl.transpile(sources, nativeSources)) {
-                throw new IllegalStateException("Error while running J2CL");
+                context.log.error("J2CL failed, see above for details");
+                return false;
             }
 
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            return false;
         }
-
+        return true;
     }
 }

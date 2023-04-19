@@ -26,9 +26,9 @@ public class BytecodeTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         if(changeSetHolder.created.isEmpty() && changeSetHolder.modified.isEmpty()) {
-            return;
+            return true;
         }
 
         Project project = changeSetHolder.project;
@@ -65,10 +65,12 @@ public class BytecodeTask extends Task {
             }
         } catch (IOException exception) {
             exception.printStackTrace();
-            throw new RuntimeException(exception);
+            return false;
         } catch (Exception exception) {
             exception.printStackTrace();
-            throw exception;
+            return false;
         }
+
+        return true;
     }
 }

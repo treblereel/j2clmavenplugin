@@ -69,7 +69,7 @@ public class Javac {
         //TODO pass-non null for "classes" to properly kick apt?
         //TODO consider a different classpath for this tasks, so as to not interfere with everything else?
 
-        CompilationTask task = compiler.getTask(null, fileManager, listener, javacOptions, null, modifiedFileObjects);
+        CompilationTask task = compiler.getTask(null, fileManager, listener, javacOptions, Collections.emptySet(), modifiedFileObjects);
 
         try {
             return task.call();

@@ -6,3 +6,4 @@
 * schedule a rebuild if build is on progress
 
 * don't run bytecode task for deps (well, apt)
+* run turbine is sources.isEmtpy() and javac if not 

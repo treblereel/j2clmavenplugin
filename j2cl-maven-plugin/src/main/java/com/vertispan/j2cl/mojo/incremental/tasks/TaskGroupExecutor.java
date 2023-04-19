@@ -25,12 +25,16 @@ public class TaskGroupExecutor {
         this.context = context;
     }
 
-    public void execute() {
+    public boolean execute() {
         while (!context.getOrderedQueue().isEmpty()) {
             Project project = context.getOrderedQueue().poll();
-            group.execute(context.current.remove(project));
+            boolean result = group.execute(context.current.remove(project));
+            if (!result) {
+                return false;
+            }
         }
         System.out.println("Finished executing task group");
         finalTask.finish();
+        return true;
     }
 }

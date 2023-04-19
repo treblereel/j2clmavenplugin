@@ -4,6 +4,7 @@ import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.Project;
 import com.vertispan.j2cl.build.PropertyTrackingConfig;
 import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.mojo.MavenLog;
 import com.vertispan.j2cl.mojo.incremental.tasks.BundleJarTask;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -122,7 +124,12 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
             System.out.println("FINISHED IN " + (System.currentTimeMillis() - start) + "ms");
         };
         BundleJarTask bundleJarTask = new BundleJarTask(context, root, runnable);
-        new TaskGroupExecutor(taskGroup, bundleJarTask, context).execute();
+        boolean result = new TaskGroupExecutor(taskGroup, bundleJarTask, context).execute();
+        if (!result) {
+            context.log.error("Build failed");
+        } else {
+            context.log.info("Build succeeded");
+        }
     }
 
 
@@ -148,6 +155,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 // is it the same as above?
                 pool.appendClassPath(byteCodePath.toString());
             } catch (NotFoundException e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
 
@@ -155,6 +163,9 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 for (Path path : paths.collect(Collectors.toUnmodifiableSet())) {
                     Path relative = byteCodePath.relativize(path);
                     String className = relative.toString().replace(".class", "").replace("/", ".");
+                    if (className.contains("$")) {
+                        continue;
+                    }
                     CtClass ctClass = pool.getOrNull(className);
                     if (ctClass != null && ctClass.getDeclaringClass() == null) {
                         Definition definition = createDefinition(project, className, ctClass);
@@ -164,7 +175,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
-            } catch (NotFoundException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
             }
@@ -190,10 +201,16 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
             ClassFile classFile = new ClassFile(ctClass.getName());
 
             for (CtField field : ctClass.getFields()) {
+                if(Modifier.isPrivate(field.getModifiers())) {
+                    continue;
+                }
                 classFile.addField(field.getName(), field.getType().getName());
             }
 
             for (CtMethod method : ctClass.getDeclaredMethods()) {
+                if(Modifier.isPrivate(method.getModifiers())) {
+                    continue;
+                }
                 String params = Arrays.stream(method.getParameterTypes()).map(CtClass::getName).collect(Collectors.joining(","));
                 classFile.addMethod(method.getName(), method.getReturnType().getName(), params);
             }
@@ -207,16 +224,22 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                     .forEach(classFile::addReference);
 
             for (CtClass nestedClass : ctClass.getNestedClasses()) {
-                if (Modifier.isPrivate(nestedClass.getModifiers())) {
+                if (Modifier.isPrivate(nestedClass.getModifiers()) || isAnonymousClass(nestedClass)) {
                     continue;
                 }
                 ClassFile nested = getClassFile(project, nestedClass);
                 classFile.addNested(nested);
             }
             return classFile;
-        } catch (NotFoundException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Error(e);
         }
+    }
+
+    private boolean isAnonymousClass(CtClass ctClass) {
+        String className = ctClass.getName();
+        return Pattern.matches(".+\\$\\d+.*", className);
     }
 
 
@@ -235,24 +258,6 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                             throw new RuntimeException(e);
                         }
                     });
-        }
-    }
-
-    private static class Pair<K, V> {
-        private final K key;
-        private final V value;
-
-        public Pair(K key, V value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        public K getKey() {
-            return key;
-        }
-
-        public V getValue() {
-            return value;
         }
     }
 

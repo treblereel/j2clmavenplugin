@@ -20,7 +20,7 @@ public class RemoveDeletedTask extends Task {
     }
 
     @Override
-    public void accept(ChangeSetHolder changeSetHolder) {
+    public Boolean apply(ChangeSetHolder changeSetHolder) {
         if (!changeSetHolder.deleted.isEmpty()) {
             try {
                 Output byteCodeOutput = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE);
@@ -66,8 +66,9 @@ public class RemoveDeletedTask extends Task {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                throw new RuntimeException(e);
+                return false;
             }
         }
+        return true;
     }
 }
