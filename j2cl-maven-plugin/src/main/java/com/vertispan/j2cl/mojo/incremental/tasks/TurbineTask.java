@@ -62,7 +62,7 @@ public class TurbineTask extends Task {
         }
         File output = results.resolve("output.jar").toFile();
 
-        List<String> apt = project.getDependencies().stream().filter(Dependency::isAPT)
+/*        List<String> apt = project.getDependencies().stream().filter(Dependency::isAPT)
                 .map(Dependency::getJar)
                 .map(File::getAbsolutePath)
                 .collect(Collectors.toUnmodifiableList());
@@ -79,7 +79,7 @@ public class TurbineTask extends Task {
 
         for (String s : processors) {
             System.out.println("processors : " + s);
-        }
+        }*/
 
         try {
             long start = System.currentTimeMillis();

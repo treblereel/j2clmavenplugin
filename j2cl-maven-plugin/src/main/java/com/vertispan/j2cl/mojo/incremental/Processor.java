@@ -74,6 +74,16 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
         projectsToBuild.addAll(lastBuildRequest);
         Map<Project, ChangeSetHolder> current = new ConcurrentHashMap<>();
+        if(alwaysRunRootProject) {
+            System.out.println("Always running root project " + root.getKey());
+            try {
+                current.put(root, new ChangeSetHolder(root));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
         for (WatchService.ChangeSetHolder holder : projectsToBuild) {
             current.putIfAbsent(holder.project, new ChangeSetHolder(holder.project));
             holder.created.values().stream().map(h -> new ChangeSetEntry(h.getSourcePath(), h.getAbsolutePath())).forEach(current.get(holder.project).created::add);
@@ -96,7 +106,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
 
         //move to constructor
         TaskGroup taskGroup = new TaskGroup();
-        TaskContext context = new TaskContext(outputFactory, config, mavenLog, root, pool, files, current);
+        TaskContext context = new TaskContext(outputFactory, alwaysRunRootProject, config, mavenLog, root, pool, files, current);
         taskGroup.addTask(new ClearGeneratedTask(context));
         taskGroup.addTask(new RemoveDeletedTask(context));
         taskGroup.addTask(new BytecodeTask(context));
@@ -132,9 +142,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
         }
     }
 
-
-    // do not forget to delete files from the output directories
-
+    private boolean alwaysRunRootProject;
 
     public void ready() {
         projectListMap.keySet()
@@ -145,6 +153,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                     try {
                         pool.appendClassPath(path.toString());
                     } catch (NotFoundException e) {
+                        e.printStackTrace();
                         throw new RuntimeException(e);
                     }
                 });
@@ -189,6 +198,15 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 }
             }
         });
+
+        mavenLog.info("check Main project " + root.getKey() + " has APT processors");
+        // If main project has APT processors, we need to run it
+        long processors = root.getDependencies().stream().filter(Dependency::isAPT).count();
+        if(processors > 0) {
+            alwaysRunRootProject = true;
+            mavenLog.info("Main project " + root.getKey() + " has APT processors, always running it");
+        }
+        mavenLog.info("initial setup is done ");
     }
 
     private Definition createDefinition(Project project, String className, CtClass ctClass) {

@@ -77,6 +77,7 @@ public class J2clTask extends Task {
 
                 if(Files.exists(nativeJsSourcePath)) {
                     nativeSources.add(SourceUtils.FileInfo.create(nativeJsSource, nativeJsOriginal));
+                    continue;
                 }
 
                 String generatedNativeJs = generated.resolve(nativeJsOriginal).toFile().getAbsolutePath();

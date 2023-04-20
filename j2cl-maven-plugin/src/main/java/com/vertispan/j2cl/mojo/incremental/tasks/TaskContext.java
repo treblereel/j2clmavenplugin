@@ -28,9 +28,11 @@ public class TaskContext {
     public final ClassPool pool;
     public final Map<String, Definition> files;
     public final Map<Project, ChangeSetHolder> current;
+    public final boolean alwaysRunMainProject;
+
     private final Queue<Project> ordered = new LinkedList<>();
 
-    public TaskContext(Output.OutputFactory outputFactory, PropertyTrackingConfig config, BuildLog log, Project root, ClassPool pool, Map<String, Definition> files, Map<Project, ChangeSetHolder> current) {
+    public TaskContext(Output.OutputFactory outputFactory, boolean alwaysRunMainProject, PropertyTrackingConfig config, BuildLog log, Project root, ClassPool pool, Map<String, Definition> files, Map<Project, ChangeSetHolder> current) {
         this.outputFactory = outputFactory;
         this.config = config;
         this.log = log;
@@ -38,6 +40,7 @@ public class TaskContext {
         this.pool = pool;
         this.files = files;
         this.current = current;
+        this.alwaysRunMainProject = alwaysRunMainProject;
 
         order(current);
     }
@@ -47,7 +50,6 @@ public class TaskContext {
     }
 
     public void addToBuildQueue(Project project) {
-        System.out.println("Adding " + project + " to build queue");
         if(!ordered.contains(project)) {
             ordered.add(project);
         }
@@ -62,14 +64,15 @@ public class TaskContext {
                         .filter(d -> projects.containsKey(d.getProject().getKey()))
                         .map(d -> d.getProject().getKey())
                         .collect(Collectors.toSet())));
-        Stack<String> stack = new Stack<>();
-        stack.addAll(projects.keySet());
-        while (!stack.isEmpty()) {
-            String key = stack.peek();
+        Queue<String> queue = new LinkedList<>();
+        queue.addAll(projects.keySet());
+        while (!queue.isEmpty()) {
+            String key = queue.poll();
             if(adjacencyList.get(key).isEmpty()) {
                 ordered.add(projects.get(key));
-                stack.pop();
                 adjacencyList.values().forEach(set -> set.remove(key));
+            } else {
+                queue.add(key);
             }
         }
     }

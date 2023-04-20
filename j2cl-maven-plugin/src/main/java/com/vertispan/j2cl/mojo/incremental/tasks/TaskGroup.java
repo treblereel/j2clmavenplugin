@@ -15,7 +15,7 @@ public class TaskGroup {
 
     public boolean execute(ChangeSetHolder changeSet) {
         for (Task task : tasks) {
-            System.out.println("Executing " + task + " on " + changeSet.project);
+            task.context.log.info("Executing " + task.getClass().getCanonicalName() + " on " + changeSet.project);
             boolean result = task.apply(changeSet);
             if(!result) {
                 return false;
