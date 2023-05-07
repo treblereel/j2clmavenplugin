@@ -2,23 +2,10 @@ package com.vertispan.j2cl.mojo.incremental;
 
 import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.Project;
-import com.vertispan.j2cl.build.PropertyTrackingConfig;
 import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.mojo.MavenLog;
-import com.vertispan.j2cl.mojo.incremental.tasks.BundleJarTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.BytecodeTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.ClearGeneratedTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.ClosureBundleTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.J2clTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.PostBytecodeTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.RemoveDeletedTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.StrippedSourcesTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.TaskContext;
-import com.vertispan.j2cl.mojo.incremental.tasks.TaskGroup;
-import com.vertispan.j2cl.mojo.incremental.tasks.TaskGroupExecutor;
-import com.vertispan.j2cl.mojo.incremental.tasks.TurbineTask;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtField;
@@ -29,19 +16,18 @@ import javassist.NotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.vertispan.j2cl.build.provided.J2clTask.NATIVE_JS_SOURCES;
 import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_BYTECODE;
 
 public class Processor implements WatchService.IncrementalProcessorDelegate {
@@ -65,80 +51,35 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
         outputFactory = new Output.OutputFactory(buildService.getDiskCache().cacheDir.toPath());
     }
 
-    private final Set<WatchService.ChangeSetHolder> lastBuildRequest = new HashSet<>();
+    private final ConcurrentLinkedQueue<WatchService.ChangeSetHolder> buildQueue = new ConcurrentLinkedQueue<>();
+
+    private Set<WatchService.ChangeSetHolder> failedBuildQueue = new HashSet<>();
+    private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     public void requestBuild(Set<WatchService.ChangeSetHolder> projectsToBuild) {
         if (projectsToBuild.isEmpty()) {
             return;
         }
+        run(projectsToBuild);
+    }
 
-        projectsToBuild.addAll(lastBuildRequest);
-        Map<Project, ChangeSetHolder> current = new ConcurrentHashMap<>();
-        if(alwaysRunRootProject) {
-            System.out.println("Always running root project " + root.getKey());
-            try {
-                current.put(root, new ChangeSetHolder(root));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private void run(Set<WatchService.ChangeSetHolder> projectsToBuild) {
 
-        }
+        buildQueue.addAll(projectsToBuild);
 
-        for (WatchService.ChangeSetHolder holder : projectsToBuild) {
-            current.putIfAbsent(holder.project, new ChangeSetHolder(holder.project));
-            holder.created.values().stream().map(h -> new ChangeSetEntry(h.getSourcePath(), h.getAbsolutePath())).forEach(current.get(holder.project).created::add);
-            holder.modified.values().stream().map(h -> new ChangeSetEntry(h.getSourcePath(), h.getAbsolutePath())).forEach(current.get(holder.project).modified::add);
-            holder.deleted.forEach(d -> current.get(holder.project).deleted.add(d));
-        }
-
-        for (Map.Entry<Project, ChangeSetHolder> entry : current.entrySet()) {
-            Set<ChangeSetEntry> natives = Stream.concat(entry.getValue().created.stream(), entry.getValue().modified.stream())
-                    .filter(p -> NATIVE_JS_SOURCES.matches(p.absolutePath)).collect(Collectors.toUnmodifiableSet());
-            for (ChangeSetEntry n : natives) {
-                String absolutePath = n.absolutePath.toFile().toString().replace(".native.js", ".java");
-                String relativePath = n.relativePath.toFile().toString().replace(".native.js", ".java");
-                entry.getValue().modified.add(new ChangeSetEntry(Paths.get(relativePath), Paths.get(absolutePath)));
-            }
-        }
-        PropertyTrackingConfig config = new PropertyTrackingConfig(buildService.getConfig());
-        config.getBootstrapClasspath();
-
-
-        //move to constructor
-        TaskGroup taskGroup = new TaskGroup();
-        TaskContext context = new TaskContext(outputFactory, alwaysRunRootProject, config, mavenLog, root, pool, files, current);
-        taskGroup.addTask(new ClearGeneratedTask(context));
-        taskGroup.addTask(new RemoveDeletedTask(context));
-        taskGroup.addTask(new BytecodeTask(context));
-        taskGroup.addTask(new PostBytecodeTask(context));
-        taskGroup.addTask(new StrippedSourcesTask(context));
-        taskGroup.addTask(new TurbineTask(context));
-        taskGroup.addTask(new J2clTask(context));
-        taskGroup.addTask(new ClosureBundleTask(context));
-
-        System.out.println("requestBuild ");
-
-        projectsToBuild.forEach(p -> {
-            System.out.println("project " + p.project.getKey());
-            System.out.println("created " + p.created);
-            System.out.println("modified " + p.modified);
-            System.out.println("deleted " + p.deleted);
-        });
-
-
-        long start = System.currentTimeMillis();
-
-        Runnable runnable = () -> {
-            projectsToBuild.clear();
-            current.clear();
-            System.out.println("FINISHED IN " + (System.currentTimeMillis() - start) + "ms");
-        };
-        BundleJarTask bundleJarTask = new BundleJarTask(context, root, runnable);
-        boolean result = new TaskGroupExecutor(taskGroup, bundleJarTask, context).execute();
-        if (!result) {
-            context.log.error("Build failed");
-        } else {
-            context.log.info("Build succeeded");
+        if (!isRunning.get()) {
+            new BuildRunner()
+                    .setBuildQueue(buildQueue)
+                    .setFailedBuildQueue(failedBuildQueue)
+                    .setAlwaysRunRootProject(alwaysRunRootProject)
+                    .setRoot(root)
+                    .setIsRunning(isRunning)
+                    .setBuildService(buildService)
+                    .setMavenLog(mavenLog)
+                    .setOutputFactory(outputFactory)
+                    .setFiles(files)
+                    .setPool(pool)
+                    .setProjectsToBuild(projectsToBuild).start();
         }
     }
 
@@ -210,11 +151,11 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
     }
 
     private Definition createDefinition(Project project, String className, CtClass ctClass) {
-        ClassFile classFile = getClassFile(project, ctClass);
+        ClassFile classFile = getClassFile(ctClass);
         return new Definition(project, className, classFile);
     }
 
-    private ClassFile getClassFile(Project project, CtClass ctClass) {
+    private ClassFile getClassFile(CtClass ctClass) {
         try {
             ClassFile classFile = new ClassFile(ctClass.getName());
 
@@ -245,7 +186,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 if (Modifier.isPrivate(nestedClass.getModifiers()) || isAnonymousClass(nestedClass)) {
                     continue;
                 }
-                ClassFile nested = getClassFile(project, nestedClass);
+                ClassFile nested = getClassFile(nestedClass);
                 classFile.addNested(nested);
             }
             return classFile;
@@ -260,23 +201,8 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
         return Pattern.matches(".+\\$\\d+.*", className);
     }
 
-
     public void init(Map<Project, List<Path>> projectListMap) {
         this.projectListMap.putAll(projectListMap);
-    }
-
-    private void deleteFolder(Path folderPath) throws Exception {
-        if (Files.exists(folderPath)) {
-            Files.walk(folderPath)
-                    .sorted((p1, p2) -> -p1.compareTo(p2))
-                    .forEach(p -> {
-                        try {
-                            Files.delete(p);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-        }
     }
 
     public void assignProject(Project root) {

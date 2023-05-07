@@ -7,3 +7,5 @@
 
 * don't run bytecode task for deps (well, apt)
 * run turbine is sources.isEmtpy() and javac if not 
+
+* apt can be non jar but reactor, so Dependency must support it

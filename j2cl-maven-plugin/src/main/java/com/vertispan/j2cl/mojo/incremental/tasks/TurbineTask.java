@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.turbine.diag.TurbineError;
 import com.google.turbine.main.Main;
 import com.google.turbine.options.TurbineOptions;
-import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
@@ -15,7 +14,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -44,9 +42,6 @@ public class TurbineTask extends Task {
         List<String> deps = Stream.concat(project.getDependencies()
                         .stream()
                         .map(dependency -> {
-                            Project dep = dependency.getProject();
-                            //System.out.println("dep: " + dep.getKey() + " " + project.isProcesor());
-
                             return context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
                                 .results()
                                 .resolve("output.jar");}).
@@ -56,7 +51,7 @@ public class TurbineTask extends Task {
 
         List<String> sources = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(strippedSources)) {
-            walk.filter(file -> JAVA_SOURCES.matches(file)).forEach(file -> sources.add(file.toString()));
+            walk.filter(JAVA_SOURCES::matches).forEach(file -> sources.add(file.toString()));
         } catch (IOException e) {
             return false;
         }
