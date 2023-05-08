@@ -117,10 +117,6 @@ public class BytecodeTask extends TaskFactory {
 
     @Nullable
     protected File getGeneratedClassesDir(TaskContext context) {
-        Path generated = context.outputPath().getParent().resolve("generated");
-        if (!Files.exists(generated)) {
-            generated.toFile().mkdirs();
-        }
-        return generated.toFile();
+        return context.outputPath().toFile();
     }
 }

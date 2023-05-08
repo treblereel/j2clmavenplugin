@@ -19,13 +19,11 @@ public class RemoveDeletedTask extends Task {
     public Boolean apply(ChangeSetHolder changeSetHolder) {
         if (!changeSetHolder.deleted.isEmpty()) {
             try {
-                Output outputStrippedSources = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES);
-                Output outputTranspiledJs = context.outputFactory.create(changeSetHolder.project, OutputTypes.TRANSPILED_JS);
-                Output outputBundledJs = context.outputFactory.create(changeSetHolder.project, OutputTypes.BUNDLED_JS);
+                Output outputStrippedSources = context.outputFactory.get(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES);
+                Output outputTranspiledJs = context.outputFactory.get(changeSetHolder.project, OutputTypes.TRANSPILED_JS);
+                Output outputBundledJs = context.outputFactory.get(changeSetHolder.project, OutputTypes.BUNDLED_JS);
 
                 for (Path path : changeSetHolder.deleted) {
-
-                    System.out.println("deleteFile " + path);
 
                     //replace .java with .class
                     String fileName = path.getFileName().toString().replace(".java", "");

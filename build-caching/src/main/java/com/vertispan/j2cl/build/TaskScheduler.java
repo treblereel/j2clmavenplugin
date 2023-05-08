@@ -222,8 +222,7 @@ public class TaskScheduler {
                         if (elapsedMillis > 5) {
                             buildLog.info("Finished " + taskDetails.getDebugName() + " in " + elapsedMillis + "ms");
                         }
-                        result.markSuccess();
-
+                        result.markSuccess(taskDetails.getProject(), taskDetails.getTaskFactory().getOutputType());
                     } catch (Throwable exception) {
                         if (Thread.currentThread().isInterrupted()) {
                             // Tried and failed to be canceled, so even though we failed, some files might have

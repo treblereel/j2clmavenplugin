@@ -31,18 +31,23 @@ public class TurbineTask extends Task {
     @Override
     public Boolean apply(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
-        List<File> extraClasspath = context.config.getExtraClasspath();
-        Path strippedSources = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).results();
-        Path generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
 
-        Path generatedJar = context.outputFactory.create(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("GEN.jar");
-        Output strippedBytecodeHeaders = context.outputFactory.create(project, OutputTypes.STRIPPED_BYTECODE_HEADERS);
+        if(context.application.equals(project)) {
+            return true;
+        }
+
+        List<File> extraClasspath = context.config.getExtraClasspath();
+        Path strippedSources = context.outputFactory.get(project, OutputTypes.STRIPPED_SOURCES).results();
+        //Path generatedClassesDir = context.outputFactory.get(project, OutputTypes.BYTECODE).results();
+
+        //Path generatedJar = context.outputFactory.get(project, OutputTypes.STRIPPED_SOURCES).getOutputPath().resolve("GEN.jar");
+        Output strippedBytecodeHeaders = context.outputFactory.get(project, OutputTypes.STRIPPED_BYTECODE_HEADERS);
         Path results = strippedBytecodeHeaders.results();
         delete(results);
         List<String> deps = Stream.concat(project.getDependencies()
                         .stream()
                         .map(dependency -> {
-                            return context.outputFactory.create(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
+                            return context.outputFactory.get(dependency.getProject(), OutputTypes.STRIPPED_BYTECODE_HEADERS)
                                 .results()
                                 .resolve("output.jar");}).
                         map(Path::toString),
@@ -92,7 +97,7 @@ public class TurbineTask extends Task {
 
             context.log.debug("turbine finished: " + result + " in " + (System.currentTimeMillis() - start) + "ms");
             extractJar(output, results, context.log);
-            extractJar(generatedJar.toFile(), generatedClassesDir, context.log);
+            //extractJar(generatedJar.toFile(), generatedClassesDir, context.log);
         } catch (TurbineError e) {
             // usually it means, it's an apt that can't be processed, log it
             context.log.info(e.getMessage());

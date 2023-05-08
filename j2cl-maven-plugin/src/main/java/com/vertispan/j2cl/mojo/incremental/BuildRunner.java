@@ -3,11 +3,10 @@ package com.vertispan.j2cl.mojo.incremental;
 import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.Project;
 import com.vertispan.j2cl.build.PropertyTrackingConfig;
-import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.build.incremental.WatchService;
 import com.vertispan.j2cl.mojo.MavenLog;
 import com.vertispan.j2cl.mojo.incremental.tasks.BundleJarTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.BytecodeTask;
-import com.vertispan.j2cl.mojo.incremental.tasks.ClearGeneratedTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.ClosureBundleTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.J2clTask;
 import com.vertispan.j2cl.mojo.incremental.tasks.PostBytecodeTask;
@@ -91,7 +90,7 @@ class BuildRunner extends Thread {
             //move to constructor
             TaskContext context = new TaskContext(outputFactory, alwaysRunRootProject, new PropertyTrackingConfig(buildService.getConfig()), mavenLog, root, pool, files, current);
             TaskGroup taskGroup = new TaskGroup();
-            taskGroup.addTask(new ClearGeneratedTask(context));
+            //taskGroup.addTask(new ClearGeneratedTask(context));
             taskGroup.addTask(new RemoveDeletedTask(context));
             taskGroup.addTask(new BytecodeTask(context));
             taskGroup.addTask(new PostBytecodeTask(context));

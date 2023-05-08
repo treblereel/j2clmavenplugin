@@ -83,7 +83,7 @@ public class BundleJarTask {
         List<String> sourceOrder = new ArrayList<>();
         try {
             for (Project project1 : buildOrder) {
-                Path path = context.outputFactory.create(project1, OutputTypes.BUNDLED_JS).getOutputPath().resolve("results");
+                Path path = context.outputFactory.get(project1, OutputTypes.BUNDLED_JS).getOutputPath().resolve("results");
                 Files.walk(path).filter(p -> BUNDLE_JS.matches(p))
                         .map(p -> path.relativize(p).toString()).forEach(sourceOrder::add);
             }

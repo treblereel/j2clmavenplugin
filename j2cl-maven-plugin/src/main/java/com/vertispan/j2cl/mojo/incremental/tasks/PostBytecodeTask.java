@@ -35,7 +35,7 @@ public class PostBytecodeTask extends Task {
     public Boolean apply(ChangeSetHolder changeSetHolder) {
         Map<String, Definition> removed = new HashMap<>();
         Project project = changeSetHolder.project;
-        Path results = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
+        Path results = context.outputFactory.get(project, OutputTypes.BYTECODE).results();
 
         Set<Path> removeFromPool = new HashSet<>();
         changeSetHolder.modified
@@ -116,7 +116,7 @@ public class PostBytecodeTask extends Task {
                 .filter(entry -> Files.exists(Paths.get(entry.absolutePath.toString().replace(".java", ".native.js"))))
                 .forEach(entry -> {
                     Path nativeJs = Paths.get(entry.absolutePath.toString().replace(".java", ".native.js"));
-                    Path dist = context.outputFactory.create(changeSetHolder.project, OutputTypes.BYTECODE)
+                    Path dist = context.outputFactory.get(changeSetHolder.project, OutputTypes.BYTECODE)
                             .results()
                             .resolve(entry.relativePath.toString()
                                     .replace(".java", ".native.js"));

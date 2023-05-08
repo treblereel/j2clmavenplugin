@@ -6,10 +6,8 @@ import com.vertispan.j2cl.build.task.*;
 import com.vertispan.j2cl.tools.J2cl;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,42 +56,25 @@ public class J2clTask extends TaskFactory {
                 return;// nothing to do
             }
             List<File> classpathDirs = Stream.concat(
-                    classpathHeaders.stream().flatMap(i -> i.getParentPaths().stream().map(Path::toFile)),
-                    extraClasspath.stream()
-            )
+                            classpathHeaders.stream().flatMap(i -> i.getParentPaths().stream().map(Path::toFile)),
+                            extraClasspath.stream()
+                    )
                     .collect(Collectors.toUnmodifiableList());
 
             J2cl j2cl = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context);
 
             // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
             //      automatically relativized?
-
-
-            Path generated = context.outputPath().getParent().getParent().resolve(OutputTypes.BYTECODE).resolve("generated");
-
-            Collection<SourceUtils.FileInfo> generatedJavaFiles = Files.exists(generated) ? Files.walk(generated)
-                    .filter(JAVA_SOURCES::matches)
-                    .map(p -> SourceUtils.FileInfo.create(p.toFile().getAbsolutePath() , generated.relativize(p).toString()))
-                    .collect(Collectors.toUnmodifiableSet()) : Collections.emptySet();
-
-            Collection<SourceUtils.FileInfo> generatedNativeJsFiles = Files.exists(generated) ? Files.walk(generated)
-                    .filter(NATIVE_JS_SOURCES::matches)
-                    .map(p -> SourceUtils.FileInfo.create(p.toFile().getAbsolutePath() , generated.relativize(p).toString()))
-                    .collect(Collectors.toUnmodifiableSet()) : Collections.emptySet();
-
-            List<SourceUtils.FileInfo> javaSources = Stream.concat(ownJavaSources.getFilesAndHashes()
+            List<SourceUtils.FileInfo> javaSources = ownJavaSources.getFilesAndHashes()
                     .stream()
                     .filter(e -> JAVA_SOURCES.matches(e.getSourcePath()))
-                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString())),
-                            generatedJavaFiles.stream())
+                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
                     .collect(Collectors.toUnmodifiableList());
-
-            List<SourceUtils.FileInfo> nativeSources = Stream.concat(ownNativeJsSources.stream().flatMap(i ->
-                    i.getFilesAndHashes()
-                            .stream())
+            List<SourceUtils.FileInfo> nativeSources = ownNativeJsSources.stream().flatMap(i ->
+                            i.getFilesAndHashes()
+                                    .stream())
                     .filter(e -> NATIVE_JS_SOURCES.matches(e.getSourcePath()))
-                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString())),
-                            generatedNativeJsFiles.stream())
+                    .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
                     .collect(Collectors.toUnmodifiableList());
 
             // TODO when we make j2cl incremental we'll consume the provided sources and hashes (the "values" in the

@@ -4,7 +4,6 @@ import com.google.j2cl.common.SourceUtils;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.DependencyOptions;
-import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.provided.ClosureTask;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
@@ -38,10 +37,9 @@ public class ClosureBundleTask extends Task {
     public Boolean apply(ChangeSetHolder changeSetHolder) {
         Project project = changeSetHolder.project;
 
-        Path transpiledJs = context.outputFactory.create(project, OutputTypes.TRANSPILED_JS).results();
-        Path bytecode = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
-        Path bytecodeGenerated = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
-        File closureOutputDir = context.outputFactory.create(project, OutputTypes.BUNDLED_JS).results().toFile();
+        Path transpiledJs = context.outputFactory.get(project, OutputTypes.TRANSPILED_JS).results();
+        Path bytecode = context.outputFactory.get(project, OutputTypes.BYTECODE).results();
+        File closureOutputDir = context.outputFactory.get(project, OutputTypes.BUNDLED_JS).results().toFile();
 
 
         try {
@@ -51,10 +49,7 @@ public class ClosureBundleTask extends Task {
                                     .map(p -> Pair.of(transpiledJs, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), transpiledJs.relativize(p).toString()))),
                             Files.walk(bytecode)
                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                    .map(p -> Pair.of(bytecode, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecode.relativize(p).toString()))),
-                            Files.walk(bytecodeGenerated)
-                                    .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                    .map(p -> Pair.of(bytecodeGenerated, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecodeGenerated.relativize(p).toString()))))
+                                    .map(p -> Pair.of(bytecode, SourceUtils.FileInfo.create(p.toAbsolutePath().toString(), bytecode.relativize(p).toString()))))
                     .flatMap(s -> s)
                     .collect(HashMap::new, (m, p) -> m.put(p.getKey(), p.getValue()), HashMap::putAll);
 
@@ -92,10 +87,7 @@ public class ClosureBundleTask extends Task {
                                                     .map(p -> transpiledJs.relativize(p).toString()),
                                             Files.walk(bytecode)
                                                     .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                                    .map(p -> bytecode.relativize(p).toString()),
-                                            Files.walk(bytecodeGenerated)
-                                                    .filter(ClosureTask.PLAIN_JS_SOURCES::matches)
-                                                    .map(p -> bytecodeGenerated.relativize(p).toString()))
+                                                    .map(p -> bytecode.relativize(p).toString()))
                                     .flatMap(s -> s)
                                     .collect(Collectors.toUnmodifiableList())),
                     sources,

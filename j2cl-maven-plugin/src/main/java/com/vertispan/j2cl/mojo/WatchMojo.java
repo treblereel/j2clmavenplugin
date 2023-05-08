@@ -7,7 +7,9 @@ import com.vertispan.j2cl.build.Project;
 import com.vertispan.j2cl.build.TaskRegistry;
 import com.vertispan.j2cl.build.TaskScheduler;
 import com.vertispan.j2cl.build.WatchService;
-import com.vertispan.j2cl.mojo.incremental.Processor;
+import com.vertispan.j2cl.build.incremental.IncrementalProcessorDelegate;
+import com.vertispan.j2cl.mojo.incremental.IncrementalWatchModeProcessor;
+import com.vertispan.j2cl.mojo.incremental.SkipIncrementalProcessorDelegate;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
@@ -27,10 +29,13 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
@@ -130,6 +135,12 @@ public class WatchMojo extends AbstractBuildMojo {
     protected boolean enableSourcemaps;
 
     /**
+     * True to enable the watch mode to run in incremental mode.
+     */
+    @Parameter(defaultValue = "false")
+    protected boolean incremental;
+
+    /**
      * @deprecated Will be removed in 0.21
      */
     @Deprecated
@@ -203,7 +214,10 @@ public class WatchMojo extends AbstractBuildMojo {
         TaskRegistry taskRegistry = createTaskRegistry();
         BuildService buildService = new BuildService(taskRegistry, taskScheduler, diskCache);
 
-        Processor processor = new Processor(buildService, mavenLog);
+        IncrementalProcessorDelegate incrementalProcessorDelegate = incremental ?
+                new IncrementalWatchModeProcessor(buildService, mavenLog) :
+                new SkipIncrementalProcessorDelegate();
+
         // TODO end
 
         // assemble all of the projects we are hoping to run - if we fail in this process, we can't actually start building or watching
@@ -263,7 +277,7 @@ public class WatchMojo extends AbstractBuildMojo {
 //                                Map<String, String> outputToNameMappings = config.findNode("taskMappings").getChildren().stream().collect(Collectors.toMap(PropertyTrackingConfig.ConfigValueProvider.ConfigNode::getName, PropertyTrackingConfig.ConfigValueProvider.ConfigNode::readString));
 //                                TaskRegistry taskRegistry = new TaskRegistry(outputToNameMappings);
 //                                BuildService buildService = new BuildService(taskRegistry, taskScheduler, diskCache);
-                                processor.assignProject(p);
+                                incrementalProcessorDelegate.assignProject(p);
                                 buildService.assignProject(p, outputTask, config);
                             }
                         }
@@ -273,7 +287,14 @@ public class WatchMojo extends AbstractBuildMojo {
         } catch (Exception ex) {
             throw new MojoExecutionException("Failed to build project model", ex);
         }
-        WatchService watchService = new WatchService(buildService, executor, processor, mavenLog);
+        WatchService watchService;
+        if(incremental) {
+            System.out.println("Incremental watch mode is on: ");
+            watchService = new com.vertispan.j2cl.build.incremental.WatchService(buildService, executor, incrementalProcessorDelegate, mavenLog);
+        } else {
+            watchService = new WatchService(buildService, executor, incrementalProcessorDelegate, mavenLog);
+        }
+
         try {
             // trigger initial changes, and start up watching for future ones to rebuild
             watchService.watch(

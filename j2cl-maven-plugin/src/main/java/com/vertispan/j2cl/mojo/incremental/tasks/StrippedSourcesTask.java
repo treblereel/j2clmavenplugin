@@ -1,7 +1,6 @@
 package com.vertispan.j2cl.mojo.incremental.tasks;
 
 import com.google.j2cl.common.SourceUtils;
-import com.vertispan.j2cl.build.WatchService;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
 import com.vertispan.j2cl.tools.GwtIncompatiblePreprocessor;
@@ -25,7 +24,7 @@ public class StrippedSourcesTask extends Task {
             return true;
         }
 
-        File output = context.outputFactory.create(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).results().toFile();
+        File output = context.outputFactory.get(changeSetHolder.project, OutputTypes.STRIPPED_SOURCES).results().toFile();
 
         List<SourceUtils.FileInfo> sources = Stream.concat(
                         changeSetHolder.created.stream(),

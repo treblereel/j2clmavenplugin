@@ -1,28 +1,21 @@
 package com.vertispan.j2cl.build;
 
+import com.vertispan.j2cl.build.incremental.IncrementalProcessorDelegate;
 import com.vertispan.j2cl.build.task.BuildLog;
 import io.methvin.watcher.DirectoryChangeEvent;
-import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
-import io.methvin.watcher.OnTimeoutListener;
-import io.methvin.watcher.changeset.ChangeSet;
-import io.methvin.watcher.changeset.ChangeSetEntry;
-import io.methvin.watcher.changeset.ChangeSetListener;
 import io.methvin.watcher.hashing.FileHash;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,22 +25,20 @@ import java.util.stream.Collectors;
  * to do it.
  */
 public class WatchService {
-    private final BuildQueue buildQueue;
-    private final BuildService buildService;
-    private final ScheduledExecutorService executorService;
-    private final BuildLog buildLog;
-    private DirectoryWatcher directoryWatcher;
+    protected final BuildQueue buildQueue;
+    protected final BuildService buildService;
+    protected final ScheduledExecutorService executorService;
+    protected final BuildLog buildLog;
+    protected DirectoryWatcher directoryWatcher;
 
-    private IncrementalProcessorDelegate processor;
-    private CompositeListener onTimeoutListener;
+    private final IncrementalProcessorDelegate incrementalProcessorDelegate;
 
-    public WatchService(BuildService buildService, ScheduledExecutorService executorService, IncrementalProcessorDelegate processor, BuildLog log) {
+    public WatchService(BuildService buildService, ScheduledExecutorService executorService, IncrementalProcessorDelegate incrementalProcessorDelegate, BuildLog log) {
         this.buildQueue = new BuildQueue(buildService);
         this.buildService = buildService;
         this.executorService = executorService;
-        this.buildLog =log;
-
-        this.processor = processor;
+        this.buildLog = log;
+        this.incrementalProcessorDelegate = incrementalProcessorDelegate;
     }
 
     public void watch(Map<Project, List<Path>> sourcePathsToWatch) throws IOException {
@@ -56,16 +47,15 @@ public class WatchService {
         sourcePathsToWatch.forEach((project, paths) -> {
             paths.forEach(path -> pathToProjects.put(path, project));
         });
-
-        onTimeoutListener = new CompositeListener(100, counter -> {
-            Map<Path, ChangeSet> changeSet = onTimeoutListener.getChangeSet();
-            update(pathToProjects, changeSet);
-        });
-
         directoryWatcher = DirectoryWatcher.builder()
-                .paths(sourcePathsToWatch.values().stream().flatMap(List::stream).collect(Collectors.toList()))
-                .listener(onTimeoutListener).build();
-
+                .paths(sourcePathsToWatch.values().stream().flatMap(List::stream).collect(Collectors.toUnmodifiableList()))
+                .listener(event -> {
+                    if (!event.isDirectory()) {
+                        Path rootPath = event.rootPath();
+                        update(pathToProjects.get(rootPath), rootPath, rootPath.relativize(event.path()), event.eventType(), event.hash());
+                    }
+                })
+                .build();
 
         // initial hashes are ready, notify builder of initial hashes since we have them
         for (Map.Entry<Path, Project> entry : pathToProjects.entrySet()) {
@@ -79,8 +69,6 @@ public class WatchService {
             buildService.triggerChanges(project, projectFiles, Collections.emptyMap(), Collections.emptySet());
         }
 
-        processor.init(sourcePathsToWatch);
-
         // start the first build
         buildQueue.requestBuild();
 
@@ -88,55 +76,28 @@ public class WatchService {
         directoryWatcher.watchAsync(executorService);
     }
 
-    private void update(Map<Path, Project> pathToProjects, Map<Path, ChangeSet> changeSet) {
-        Set<ChangeSetHolder> projectsToBuild = new HashSet<>();
-        for (Map.Entry<Path, ChangeSet> pathChangeSetEntry : changeSet.entrySet()) {
-            Project project = pathToProjects.get(pathChangeSetEntry.getKey());
-            Map<Path, DiskCache.CacheEntry> created = new HashMap<>();
-            Map<Path, DiskCache.CacheEntry> modified = new HashMap<>();
-            Set<Path> deleted = new HashSet<>();
-
-            for (ChangeSetEntry changeSetEntry : pathChangeSetEntry.getValue().created()) {
-                if (!changeSetEntry.isDirectory()) {
-                    Path relativeFilePath = pathChangeSetEntry.getKey().relativize(changeSetEntry.path());
-                    created.put(relativeFilePath, new DiskCache.CacheEntry(relativeFilePath, pathChangeSetEntry.getKey(), changeSetEntry.hash()));
-                }
-            }
-            for (ChangeSetEntry changeSetEntry : pathChangeSetEntry.getValue().modified()) {
-                if (!changeSetEntry.isDirectory()) {
-                    Path relativeFilePath = pathChangeSetEntry.getKey().relativize(changeSetEntry.path());
-                    modified.put(relativeFilePath, new DiskCache.CacheEntry(relativeFilePath, pathChangeSetEntry.getKey(), changeSetEntry.hash()));
-                }
-            }
-            for (ChangeSetEntry changeSetEntry : pathChangeSetEntry.getValue().deleted()) {
-                if (!changeSetEntry.isDirectory()) {
-                    Path relativeFilePath = pathChangeSetEntry.getKey().relativize(changeSetEntry.path());
-                    deleted.add(relativeFilePath);
-                }
-            }
-            projectsToBuild.add(new ChangeSetHolder(project, created, modified, deleted));
+    private void update(Project project, Path rootPath, Path relativeFilePath, DirectoryChangeEvent.EventType eventType, FileHash hash) {
+        switch (eventType) {
+            case CREATE:
+                buildService.triggerChanges(project, Collections.singletonMap(relativeFilePath, new DiskCache.CacheEntry(relativeFilePath, rootPath, hash)), Collections.emptyMap(), Collections.emptySet());
+                break;
+            case MODIFY:
+                buildService.triggerChanges(project, Collections.emptyMap(), Collections.singletonMap(relativeFilePath, new DiskCache.CacheEntry(relativeFilePath, rootPath, hash)), Collections.emptySet());
+                break;
+            case DELETE:
+                buildService.triggerChanges(project, Collections.emptyMap(), Collections.emptyMap(), Collections.singleton(relativeFilePath));
+                break;
+            case OVERFLOW:
+                //TODO rescan?
+                break;
         }
 
-        processor.requestBuild(projectsToBuild);
-    }
-
-    public static class ChangeSetHolder {
-
-        public final Project project;
-        public final Map<Path, DiskCache.CacheEntry> created;
-        public final Map<Path, DiskCache.CacheEntry> modified;
-        public final Set<Path> deleted;
-
-        private ChangeSetHolder(Project project, Map<Path, DiskCache.CacheEntry> created, Map<Path, DiskCache.CacheEntry> modified, Set<Path> deleted) {
-            this.project = project;
-            this.created = created;
-            this.modified = modified;
-            this.deleted = deleted;
-        }
+        // wait a moment then start a build (this should be pluggable)
+        buildQueue.requestBuild();
     }
 
     enum BuildState { IDLE, BUILDING, CANCELING_FOR_NEW_BUILD }
-    class BuildQueue implements BuildListener {
+    protected class BuildQueue implements BuildListener {
         private final BuildService buildService;
 
         private final AtomicBoolean timerStarted = new AtomicBoolean(false);
@@ -207,7 +168,7 @@ public class WatchService {
         public void onSuccess() {
             finishBuild();
             if (buildState.get() == BuildState.IDLE) {
-                processor.ready();
+                incrementalProcessorDelegate.ready();
                 buildLog.info("-----  Build Complete: ready for browser refresh  -----");
             }
         }
@@ -254,39 +215,5 @@ public class WatchService {
 
     public void close() throws IOException {
         directoryWatcher.close();
-    }
-
-    public interface IncrementalProcessorDelegate {
-
-        void init(Map<Project, List<Path>> sourcePathsToWatch);
-
-        void ready();
-
-        void requestBuild(Set<ChangeSetHolder> projectsToBuild);
-    }
-
-    private class CompositeListener implements DirectoryChangeListener {
-
-        private final ChangeSetListener changeSetListener = new ChangeSetListener();
-        private final OnTimeoutListener onTimeoutListener;
-
-        private CompositeListener(int timeout, Consumer<Integer> consumer) {
-            this.onTimeoutListener = new OnTimeoutListener(timeout, consumer);
-        }
-
-        @Override
-        public void onIdle(int count) {
-            onTimeoutListener.onIdle(count);
-        }
-
-        @Override
-        public void onEvent(DirectoryChangeEvent event) {
-            changeSetListener.onEvent(event);
-            onTimeoutListener.onEvent(event);
-        }
-
-        public Map<Path, ChangeSet> getChangeSet() {
-            return changeSetListener.getChangeSet();
-        }
     }
 }

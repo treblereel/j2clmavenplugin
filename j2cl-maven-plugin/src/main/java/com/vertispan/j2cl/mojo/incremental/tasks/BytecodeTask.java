@@ -1,8 +1,6 @@
 package com.vertispan.j2cl.mojo.incremental.tasks;
 
 import com.google.j2cl.common.SourceUtils;
-import com.vertispan.j2cl.build.WatchService;
-import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.build.task.Project;
 import com.vertispan.j2cl.mojo.incremental.ChangeSetHolder;
@@ -13,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -44,16 +41,14 @@ public class BytecodeTask extends Task {
         ((com.vertispan.j2cl.build.Project) project).getSourceRoots().stream().forEach(System.out::println);
 
 
-        Path classOutputDir = context.outputFactory.create(project, OutputTypes.BYTECODE).results();
-        Path generatedClassesDir = context.outputFactory.create(project, OutputTypes.BYTECODE).generated();
+        Path classOutputDir = context.outputFactory.get(project, OutputTypes.BYTECODE).results();
 
         delete(classOutputDir);
-        delete(generatedClassesDir);
 
         List<File> classpathDirs = Stream.concat(
                         project.getDependencies()
                                 .stream()
-                                .map(dep -> context.outputFactory.create(dep.getProject(), OutputTypes.BYTECODE).results())
+                                .map(dep -> context.outputFactory.get(dep.getProject(), OutputTypes.BYTECODE).results())
                                 .map(Path::toFile),
                         context.config.getExtraClasspath()
                                 .stream())
@@ -79,7 +74,7 @@ public class BytecodeTask extends Task {
 
 
         try {
-            Javac javac = new Javac(context.log, generatedClassesDir.toFile(), sourcePaths.stream().map(Path::toFile).collect(Collectors.toUnmodifiableList()), classpathDirs, classOutputDir.toFile(), bootstrapClasspath);
+            Javac javac = new Javac(context.log, classOutputDir.toFile(), sourcePaths.stream().map(Path::toFile).collect(Collectors.toUnmodifiableList()), classpathDirs, classOutputDir.toFile(), bootstrapClasspath);
 
             if (!javac.compile(sources)) {
                 throw new RuntimeException("Failed to complete bytecode task, check log");

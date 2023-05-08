@@ -16,8 +16,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -54,9 +52,12 @@ public abstract class DiskCache {
             return taskOutput;
         }
 
-        public void markSuccess() {
+        public void markSuccess(Project project, String outputType) {
             markFinished(this);
             runningTasks.remove(taskDir);
+
+            lastSuccessfulOutputs.putIfAbsent(project, new ConcurrentHashMap<>());
+            lastSuccessfulOutputs.get(project).put(outputType, taskDir);
         }
         public void markFailure() {
             markFailed(this);
@@ -89,7 +90,8 @@ public abstract class DiskCache {
      */
     private final Thread watchThread = new Thread(this::checkForWork, "DiskCacheThread");
     private Map<Path, TaskOutput> knownOutputs = new ConcurrentHashMap<>();
-    private Map<Input, TaskOutput> lastSuccessfulOutputs = new ConcurrentHashMap<>();
+
+    private Map<Project, Map<String, Path>> lastSuccessfulOutputs = new ConcurrentHashMap<>();
 
     private final Map<Path, Path> knownMarkers = new ConcurrentHashMap<>();
     private final Map<Path, Set<PendingCacheResult>> taskFutures = new ConcurrentHashMap<>();
@@ -544,6 +546,10 @@ public abstract class DiskCache {
             //TODO need to basically stop everything if we can't write files to cache
             throw new UncheckedIOException(ioException);
         }
+    }
+
+    public Map<Project, Map<String, Path>> getLastSuccessfulOutputs() {
+        return lastSuccessfulOutputs;
     }
 
 }

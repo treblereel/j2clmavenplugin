@@ -2,7 +2,8 @@ package com.vertispan.j2cl.mojo.incremental;
 
 import com.vertispan.j2cl.build.BuildService;
 import com.vertispan.j2cl.build.Project;
-import com.vertispan.j2cl.build.WatchService;
+import com.vertispan.j2cl.build.incremental.WatchService;
+import com.vertispan.j2cl.build.incremental.IncrementalProcessorDelegate;
 import com.vertispan.j2cl.build.task.Dependency;
 import com.vertispan.j2cl.build.task.OutputTypes;
 import com.vertispan.j2cl.mojo.MavenLog;
@@ -30,7 +31,7 @@ import java.util.stream.Stream;
 
 import static com.vertispan.j2cl.build.provided.JavacTask.JAVA_BYTECODE;
 
-public class Processor implements WatchService.IncrementalProcessorDelegate {
+public class IncrementalWatchModeProcessor implements IncrementalProcessorDelegate {
 
     private final ClassPool pool = new ClassPool(null);
 
@@ -44,11 +45,11 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
     private Map<Project, List<Path>> projectListMap = new HashMap<>();
     private Project root;
 
-    public Processor(BuildService buildService, MavenLog mavenLog) {
+    public IncrementalWatchModeProcessor(BuildService buildService, MavenLog mavenLog) {
         this.buildService = buildService;
         this.mavenLog = mavenLog;
         pool.appendSystemPath();
-        outputFactory = new Output.OutputFactory(buildService.getDiskCache().cacheDir.toPath());
+        outputFactory = new Output.OutputFactory(buildService);
     }
 
     private final ConcurrentLinkedQueue<WatchService.ChangeSetHolder> buildQueue = new ConcurrentLinkedQueue<>();
@@ -90,7 +91,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 .stream()
                 .flatMap(p -> p.getDependencies().stream())
                 .forEach(p -> {
-                    Path path = outputFactory.create(p.getProject(), OutputTypes.BYTECODE).results();
+                    Path path = outputFactory.get(p.getProject(), OutputTypes.BYTECODE).results();
                     try {
                         pool.appendClassPath(path.toString());
                     } catch (NotFoundException e) {
@@ -100,7 +101,7 @@ public class Processor implements WatchService.IncrementalProcessorDelegate {
                 });
 
         projectListMap.forEach((project, folders) -> {
-            Path byteCodePath = outputFactory.create(project, OutputTypes.BYTECODE).results();
+            Path byteCodePath = outputFactory.get(project, OutputTypes.BYTECODE).results();
             try {
                 // is it the same as above?
                 pool.appendClassPath(byteCodePath.toString());
