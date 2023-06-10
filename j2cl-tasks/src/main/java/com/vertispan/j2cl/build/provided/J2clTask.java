@@ -2,6 +2,7 @@ package com.vertispan.j2cl.build.provided;
 
 import com.google.auto.service.AutoService;
 import com.google.j2cl.common.SourceUtils;
+import com.google.j2cl.transpiler.backend.Backend;
 import com.vertispan.j2cl.build.task.*;
 import com.vertispan.j2cl.tools.J2cl;
 
@@ -51,6 +52,7 @@ public class J2clTask extends TaskFactory {
 
         File bootstrapClasspath = config.getBootstrapClasspath();
         List<File> extraClasspath = config.getExtraClasspath();
+        Backend backend = Backend.valueOf(config.getPlatform());
         return context -> {
             if (ownJavaSources.getFilesAndHashes().isEmpty()) {
                 return;// nothing to do
@@ -61,7 +63,7 @@ public class J2clTask extends TaskFactory {
             )
                     .collect(Collectors.toUnmodifiableList());
 
-            J2cl j2cl = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context);
+            J2cl j2cl = new J2cl(classpathDirs, bootstrapClasspath, context.outputPath().toFile(), context, backend);
 
             // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
             //      automatically relativized?
@@ -79,7 +81,7 @@ public class J2clTask extends TaskFactory {
 
             // TODO when we make j2cl incremental we'll consume the provided sources and hashes (the "values" in the
             //      maps above), and diff them against the previous compile
-            if (!j2cl.transpile(javaSources, nativeSources)) {
+            if (!j2cl.transpile(javaSources, nativeSources, backend)) {
                 throw new IllegalStateException("Error while running J2CL");
             }
         };

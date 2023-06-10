@@ -227,4 +227,9 @@ public class PropertyTrackingConfig implements Config {
         }
         return Paths.get(s);
     }
+
+    @Override
+    public String getPlatform() {
+        return getString("platform");
+    }
 }

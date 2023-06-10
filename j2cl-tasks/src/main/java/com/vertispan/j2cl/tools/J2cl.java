@@ -24,12 +24,12 @@ public class J2cl {
     private final File jsOutDir;
     private final BuildLog log;
 
-    public J2cl(List<File> strippedClasspath, @Nonnull File bootstrap, File jsOutDir, BuildLog log) {
+    public J2cl(List<File> strippedClasspath, @Nonnull File bootstrap, File jsOutDir, BuildLog log, Backend backend) {
         this.jsOutDir = jsOutDir;
         this.log = log;
         optionsBuilder = J2clTranspilerOptions.newBuilder()
                 .setFrontend(Frontend.JDT)
-                .setBackend(Backend.CLOSURE)
+                .setBackend(backend)
                 .setClasspaths(Stream.concat(Stream.of(bootstrap), strippedClasspath.stream())
                         .map(File::getAbsolutePath)
                         .collect(Collectors.toUnmodifiableList())
@@ -39,16 +39,17 @@ public class J2cl {
                 .setGenerateKytheIndexingMetadata(false);
     }
 
-    public boolean transpile(List<SourceUtils.FileInfo> sourcesToCompile, List<SourceUtils.FileInfo> nativeSources) {
+    public boolean transpile(List<SourceUtils.FileInfo> sourcesToCompile, List<SourceUtils.FileInfo> nativeSources, Backend backend) {
         Problems problems = new Problems();
         try (OutputUtils.Output output = OutputUtils.initOutput(jsOutDir.toPath(), problems)) {
             J2clTranspilerOptions options = optionsBuilder
                     .setOutput(output)
+                    .setBackend(backend)
                     .setSources(sourcesToCompile)
                     .setNativeSources(nativeSources)
-                    .setKotlinCommonSources(Collections.emptyList())
                     .setKotlincOptions(ImmutableList.of())
-                    .build();
+                    .setWasmEntryPoints(ImmutableList.of())
+                    .build(problems);
 
             log.debug(options.toString());
 

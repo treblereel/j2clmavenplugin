@@ -48,6 +48,7 @@ public class JavacTask extends TaskFactory {
 
         File bootstrapClasspath = config.getBootstrapClasspath();
         List<File> extraClasspath = config.getExtraClasspath();
+        String platform = config.getPlatform();
         return context -> {
             if (ownSources.getFilesAndHashes().isEmpty()) {
                 return;// no work to do
@@ -59,7 +60,7 @@ public class JavacTask extends TaskFactory {
             ).collect(Collectors.toUnmodifiableList());
 
             List<File> sourcePaths = ownSources.getParentPaths().stream().map(Path::toFile).collect(Collectors.toUnmodifiableList());
-            Javac javac = new Javac(context, null, sourcePaths, classpathDirs, context.outputPath().toFile(), bootstrapClasspath);
+            Javac javac = new Javac(context, null, sourcePaths, classpathDirs, context.outputPath().toFile(), bootstrapClasspath, platform);
 
             // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
             //      automatically relativized?

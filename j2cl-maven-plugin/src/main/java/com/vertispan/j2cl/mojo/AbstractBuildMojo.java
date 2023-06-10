@@ -115,6 +115,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
     @Parameter
     private int shutdownWaitSeconds = 10;
 
+    @Parameter(defaultValue = "CLOSURE", required = false)
+    protected String platform;
+
     private static String key(Artifact artifact) {
         // this is roughly DefaultArtifact.toString, minus scope, since we don't care what the scope is for the purposes of building projects
         String key = artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getBaseVersion();
@@ -403,7 +406,7 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
     protected Predicate<String> withSourceRootFilter() {
         return path -> new File(path).exists() &&
             !(annotationProcessorMode.pluginShouldExcludeGeneratedAnnotationsDir()
-                && (path.endsWith("generated-test-sources" + File.separator + "test-annotations") || 
+                && (path.endsWith("generated-test-sources" + File.separator + "test-annotations") ||
                     path.endsWith("generated-sources" + File.separator + "annotations")));
     }
 

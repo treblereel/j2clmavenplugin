@@ -48,4 +48,11 @@ public interface Config {
      */
     Path getWebappDirectory();
 
+
+    /**
+     * This is the platform that the code is being compiled for. Right now CLOSURE is the only supported.
+     * @return
+     */
+    String getPlatform();
+
 }

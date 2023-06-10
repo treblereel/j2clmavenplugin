@@ -1,5 +1,6 @@
 package com.vertispan.j2cl.tools;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.j2cl.common.SourceUtils.FileInfo;
 import com.vertispan.j2cl.build.task.BuildLog;
 
@@ -33,12 +34,20 @@ public class Javac {
     StandardJavaFileManager fileManager;
     private DiagnosticCollector<JavaFileObject> listener;
 
-    public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap) throws IOException {
+    private static final ImmutableSet<String> VALID_PLATFORMS =
+            ImmutableSet.of("CLOSURE", "WASM");
+
+    public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap, String platform) throws IOException {
         this.log = log;
+        if (!VALID_PLATFORMS.contains(platform)) {
+            throw new IllegalArgumentException("Unsupported platform: " + platform);
+        }
+        String platformFlag = "-AtestPlatform=" + platform;
+
 //        for (File file : classpath) {
 //            System.out.println(file.getAbsolutePath() + " " + file.exists() + " " + file.isDirectory());
 //        }
-        javacOptions = new ArrayList<>(Arrays.asList("-encoding", "utf8", "-implicit:none", "-bootclasspath", bootstrap.toString()));
+        javacOptions = new ArrayList<>(Arrays.asList("-encoding", "utf8", "-implicit:none", "-bootclasspath", bootstrap.toString(), platformFlag));
         if (generatedClassesPath == null) {
             javacOptions.add("-proc:none");
         }
