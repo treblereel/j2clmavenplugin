@@ -1,5 +1,6 @@
 package com.vertispan.j2cl.mojo;
 
+import com.google.j2cl.transpiler.backend.Backend;
 import com.vertispan.j2cl.build.Dependency;
 import com.vertispan.j2cl.build.DiskCache;
 import com.vertispan.j2cl.build.Project;
@@ -60,6 +61,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
 
     @Parameter(defaultValue = "com.vertispan.j2cl:jre:" + Versions.J2CL_VERSION, required = true)
     protected String jreJar;
+
+    @Parameter(defaultValue = "com.vertispan.j2cl:jre-wasm:" + Versions.J2CL_VERSION, required = true)
+    protected String jreWasmJar;
     @Parameter(defaultValue = "com.vertispan.j2cl:jre:zip:jszip:" + Versions.J2CL_VERSION, required = true)
     protected String jreJsZip;
 
@@ -84,6 +88,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
 
     @Parameter(defaultValue = "AVOID_MAVEN")
     private AnnotationProcessorMode annotationProcessorMode;
+
+    @Parameter
+    protected List<String> wasmEntrypoints = new ArrayList<>();
 
     private List<DependencyReplacement> defaultDependencyReplacements = Arrays.asList(
             new DependencyReplacement("com.google.jsinterop:base", "com.vertispan.jsinterop:base:" + Versions.VERTISPAN_JSINTEROP_BASE_VERSION),
@@ -114,6 +121,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
 
     @Parameter
     private int shutdownWaitSeconds = 10;
+
+    @Parameter(defaultValue = "CLOSURE", required = false)
+    protected String platform;
 
     private static String key(Artifact artifact) {
         // this is roughly DefaultArtifact.toString, minus scope, since we don't care what the scope is for the purposes of building projects
@@ -192,7 +202,11 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
         return reference;
     }
 
-    protected static String getOutputTask(String compilationLevel) {
+    protected String getOutputTask(String compilationLevel) {
+        if(getPlatform().isWasm()) {
+            return OutputTypes.WASM_APP;
+        }
+
         if (compilationLevel.equalsIgnoreCase(BUNDLE_JAR)) {
             return OutputTypes.BUNDLED_JS_APP;
         }
@@ -403,7 +417,7 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
     protected Predicate<String> withSourceRootFilter() {
         return path -> new File(path).exists() &&
             !(annotationProcessorMode.pluginShouldExcludeGeneratedAnnotationsDir()
-                && (path.endsWith("generated-test-sources" + File.separator + "test-annotations") || 
+                && (path.endsWith("generated-test-sources" + File.separator + "test-annotations") ||
                     path.endsWith("generated-sources" + File.separator + "annotations")));
     }
 
@@ -430,5 +444,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
                 Thread.currentThread().interrupt();
             }
         }));
+    }
+
+    public Backend getPlatform() {
+        return Backend.valueOf(platform.toUpperCase(Locale.ROOT));
     }
 }

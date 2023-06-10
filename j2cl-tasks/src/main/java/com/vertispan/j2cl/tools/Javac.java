@@ -1,6 +1,8 @@
 package com.vertispan.j2cl.tools;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.j2cl.common.SourceUtils.FileInfo;
+import com.google.j2cl.transpiler.backend.Backend;
 import com.vertispan.j2cl.build.task.BuildLog;
 
 import javax.lang.model.SourceVersion;
@@ -35,10 +37,12 @@ public class Javac {
 
     public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap) throws IOException {
         this.log = log;
+        String platformFlag = "-AtestPlatform=CLOSURE";
+
 //        for (File file : classpath) {
 //            System.out.println(file.getAbsolutePath() + " " + file.exists() + " " + file.isDirectory());
 //        }
-        javacOptions = new ArrayList<>(Arrays.asList("-encoding", "utf8", "-implicit:none", "-bootclasspath", bootstrap.toString()));
+        javacOptions = new ArrayList<>(Arrays.asList("-encoding", "utf8", "-implicit:none", "-bootclasspath", bootstrap.toString(), platformFlag));
         if (generatedClassesPath == null) {
             javacOptions.add("-proc:none");
         }

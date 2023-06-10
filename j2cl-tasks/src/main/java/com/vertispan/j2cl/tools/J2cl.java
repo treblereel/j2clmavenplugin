@@ -44,11 +44,12 @@ public class J2cl {
         try (OutputUtils.Output output = OutputUtils.initOutput(jsOutDir.toPath(), problems)) {
             J2clTranspilerOptions options = optionsBuilder
                     .setOutput(output)
+                    .setBackend(Backend.CLOSURE)
                     .setSources(sourcesToCompile)
                     .setNativeSources(nativeSources)
-                    .setKotlinCommonSources(Collections.emptyList())
                     .setKotlincOptions(ImmutableList.of())
-                    .build();
+                    .setWasmEntryPoints(ImmutableList.of())
+                    .build(problems);
 
             log.debug(options.toString());
 

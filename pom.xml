@@ -6,7 +6,7 @@
 
   <groupId>com.vertispan.j2cl</groupId>
   <artifactId>j2cl-tools</artifactId>
-  <version>0.21-SNAPSHOT</version>
+  <version>0.22-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>J2CL Build Tools</name>
@@ -87,7 +87,7 @@
     <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
 
     <!-- Builder dependencies versions -->
-    <j2cl.version>0.11.0-9336533b6</j2cl.version>
+    <j2cl.version>0.11.0-a02e7d516</j2cl.version>
     <closure.compiler.unshaded.version>v20221102-1</closure.compiler.unshaded.version>
     <commons.codec.version>1.11</commons.codec.version>
     <commons.io.version>2.7</commons.io.version>

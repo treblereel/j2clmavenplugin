@@ -227,4 +227,17 @@ public class PropertyTrackingConfig implements Config {
         }
         return Paths.get(s);
     }
+
+    @Override
+    public String getPlatform() {
+        return getString("platform");
+    }
+
+    public List<String> getWasmEntryPoints() {
+        ConfigValueProvider.ConfigNode entrypoint = config.findNode("wasmEntryPoints");
+        if (entrypoint == null) {
+            return Collections.emptyList();
+        }
+        return entrypoint.getChildren().stream().map(this::useStringConfig).collect(Collectors.toUnmodifiableList());
+    }
 }

@@ -82,4 +82,7 @@ public interface OutputTypes {
      * Optimized build including all js from a project's runtime classpath
      */
     String OPTIMIZED_JS = "optimized_js";
+
+    String WASM_APP = "wasm_app";
+
 }

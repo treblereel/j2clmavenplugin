@@ -196,11 +196,13 @@ public class BuildMojo extends AbstractBuildMojo {
                 getFileWithMavenCoords("com.vertispan.jsinterop:base:" + Versions.VERTISPAN_JSINTEROP_BASE_VERSION)//TODO stop hardcoding this when goog releases a "base" which actually works on both platforms
         );
 
-        List<Artifact> extraJsZips = Arrays.asList(
-                getMavenArtifactWithCoords(jreJsZip),
-                getMavenArtifactWithCoords(bootstrapJsZip)
-        );
-
+        List<Artifact> extraJsZips = new ArrayList<>();
+        if(!getPlatform().isWasm()) {
+            extraJsZips.add(getMavenArtifactWithCoords(jreJsZip));
+            extraJsZips.add(getMavenArtifactWithCoords(bootstrapJsZip));
+        } else {
+            extraJsZips.add(getMavenArtifactWithCoords(jreWasmJar));
+        }
 
         // merge may be unnecessary, just use mojoExecution.getConfiguration()?
         Xpp3DomConfigValueProvider config = new Xpp3DomConfigValueProvider(merge((Xpp3Dom) plugin.getConfiguration(), mojoExecution.getConfiguration()), expressionEvaluator, repoSession, repositories, repoSystem, extraClasspath, getLog());
