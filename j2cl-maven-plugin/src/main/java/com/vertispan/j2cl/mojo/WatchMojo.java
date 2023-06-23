@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -169,10 +170,13 @@ public class WatchMojo extends AbstractBuildMojo {
                 getFileWithMavenCoords(junitAnnotations)
         );
 
-        List<Artifact> extraJsZips = Arrays.asList(
-                getMavenArtifactWithCoords(jreJsZip),
-                getMavenArtifactWithCoords(bootstrapJsZip)
-        );
+        List<Artifact> extraJsZips = new ArrayList<>();
+        if(!getPlatform().isWasm()) {
+            extraJsZips.add(getMavenArtifactWithCoords(jreJsZip));
+            extraJsZips.add(getMavenArtifactWithCoords(bootstrapJsZip));
+        } else {
+            extraJsZips.add(getMavenArtifactWithCoords(jreWasmJar));
+        }
 
         // accumulate configs and defaults, provide a lambda we can read dot-separated values from
         ExpressionEvaluator expressionEvaluator = new PluginParameterExpressionEvaluator(mavenSession, mojoExecution);

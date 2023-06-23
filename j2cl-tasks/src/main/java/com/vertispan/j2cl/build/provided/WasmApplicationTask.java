@@ -133,6 +133,7 @@ public class WasmApplicationTask extends TaskFactory {
                 FileUtils.copyFile(taskContext.outputPath().resolve(initialScriptFilename + ".symbols").toFile(), webappDirectory.resolve(initialScriptFilename + ".symbols").toFile());
                 FileUtils.copyFile(taskContext.outputPath().resolve(initialScriptFilename + ".wasm").toFile(), webappDirectory.resolve(initialScriptFilename + ".wasm").toFile());
                 FileUtils.copyFile(taskContext.outputPath().resolve(initialScriptFilename + ".wasm.map").toFile(), webappDirectory.resolve(initialScriptFilename + ".wasm.map").toFile());
+                FileUtils.copyFile(taskContext.outputPath().resolve("imports.txt").toFile(), webappDirectory.resolve("imports.txt").toFile());
             }
 
             @Override
