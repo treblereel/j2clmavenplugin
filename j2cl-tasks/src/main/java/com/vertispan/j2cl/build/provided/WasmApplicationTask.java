@@ -4,9 +4,11 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.MoreFiles;
+import com.google.common.io.Resources;
 import com.google.j2cl.common.OutputUtils;
 import com.google.j2cl.common.Problems;
 import com.google.j2cl.common.SourceUtils;
+import com.google.j2cl.common.StringUtils;
 import com.google.j2cl.transpiler.J2clTranspiler;
 import com.google.j2cl.transpiler.J2clTranspilerOptions;
 import com.google.j2cl.transpiler.backend.Backend;
@@ -24,6 +26,7 @@ import org.eclipse.jdt.core.dom.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -134,6 +137,8 @@ public class WasmApplicationTask extends TaskFactory {
                 FileUtils.copyFile(taskContext.outputPath().resolve(initialScriptFilename + ".wasm").toFile(), webappDirectory.resolve(initialScriptFilename + ".wasm").toFile());
                 FileUtils.copyFile(taskContext.outputPath().resolve(initialScriptFilename + ".wasm.map").toFile(), webappDirectory.resolve(initialScriptFilename + ".wasm.map").toFile());
                 FileUtils.copyFile(taskContext.outputPath().resolve("imports.txt").toFile(), webappDirectory.resolve("imports.txt").toFile());
+
+                new WasmGoogleModuleLoader(initialScriptFilename, taskContext.outputPath().resolve("imports.txt")).execute(webappDirectory);
             }
 
             @Override
@@ -242,8 +247,40 @@ public class WasmApplicationTask extends TaskFactory {
             for (ASTNode node : entryPoints) {
                 if (node instanceof MethodDeclaration) {
                     MethodDeclaration methodDeclaration = (MethodDeclaration) node;
-                    result.add(fileInfo.originalPath().replace(".java","").replace("/", ".") + "#" + methodDeclaration.getName().getFullyQualifiedName());
+                    result.add(fileInfo.originalPath().replace(".java", "").replace("/", ".") + "#" + methodDeclaration.getName().getFullyQualifiedName());
                 }
+            }
+        }
+    }
+
+    private class WasmGoogleModuleLoader {
+
+
+        private final Path imports;
+        private final String name;
+
+        private WasmGoogleModuleLoader(String name, Path imports) {
+            this.name = name;
+            this.imports = imports;
+        }
+
+        private void execute(Path output) {
+            try {
+                //goog module
+                String templateString = Resources.toString(getClass().getResource("WasmGoogleModule.txt"), UTF_8);
+                String _imports = MoreFiles.asCharSource(imports, UTF_8).read();
+                templateString = templateString.replace("%MODULE_NAME%", name);
+                templateString = templateString.replace("%IMPORTS%", _imports);
+                MoreFiles.asCharSink(output.resolve(name + ".module.js"), UTF_8).write(templateString);
+
+                // java wrapper
+                String javaWrapperTemplateString = Resources.toString(getClass().getResource("WasmJsInteropWrapper.txt"), UTF_8);
+                javaWrapperTemplateString = javaWrapperTemplateString.replace("%PACKAGE%", name.toLowerCase(Locale.ROOT));
+                javaWrapperTemplateString = javaWrapperTemplateString.replace("%MODULE_NAME%", StringUtils.capitalize(name));
+                javaWrapperTemplateString = javaWrapperTemplateString.replace("%NAMESPACE%", name + ".j2wasm");
+                MoreFiles.asCharSink(output.resolve(StringUtils.capitalize(name) + "Loader.java"), UTF_8).write(javaWrapperTemplateString);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to complete " + e);
             }
         }
     }
