@@ -74,6 +74,7 @@ public class BytecodeTask extends TaskFactory {
 
         File bootstrapClasspath = config.getBootstrapClasspath();
         List<File> extraClasspath = config.getExtraClasspath();
+        String platform = config.getPlatform();
         return context -> {
             if (!inputSources.getFilesAndHashes().isEmpty()) {
                 // At least one .java file in sources, compile it (otherwise skip this and just copy resource)
@@ -86,7 +87,7 @@ public class BytecodeTask extends TaskFactory {
                 List<File> sourcePaths = inputDirs.getParentPaths().stream().map(Path::toFile).collect(Collectors.toUnmodifiableList());
                 File generatedClassesDir = getGeneratedClassesDir(context);
                 File classOutputDir = context.outputPath().toFile();
-                Javac javac = new Javac(context, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, bootstrapClasspath);
+                Javac javac = new Javac(context, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, bootstrapClasspath, platform);
 
                 // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
                 //      automatically relativized?

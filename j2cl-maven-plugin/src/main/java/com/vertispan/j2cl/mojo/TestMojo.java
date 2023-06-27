@@ -14,6 +14,8 @@ import com.vertispan.j2cl.build.PropertyTrackingConfig;
 import com.vertispan.j2cl.build.TaskRegistry;
 import com.vertispan.j2cl.build.TaskScheduler;
 import com.vertispan.j2cl.build.provided.TestCollectionTask;
+import com.vertispan.j2cl.build.task.Input;
+import com.vertispan.j2cl.build.task.OutputTypes;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.FileSet;
 import org.apache.maven.model.Plugin;
@@ -285,11 +287,15 @@ public class TestMojo extends AbstractBuildMojo {
                 getFileWithMavenCoords(junitAnnotations)
         );
 
-        List<Artifact> extraJsZips = Arrays.asList(
-                getMavenArtifactWithCoords(testJsZip),
-                getMavenArtifactWithCoords(jreJsZip),
-                getMavenArtifactWithCoords(bootstrapJsZip)
-        );
+        List<Artifact> extraJsZips = new ArrayList<>();
+        extraJsZips.add(getMavenArtifactWithCoords(bootstrapJsZip));
+        extraJsZips.add(getMavenArtifactWithCoords(testJsZip));
+        if(getPlatform().isWasm()) {
+            extraJsZips.add(getMavenArtifactWithCoords(jreWasmJar));
+            extraJsZips.add(getMavenArtifactWithCoords(wasmJsBootstrap));
+        } else {
+            extraJsZips.add(getMavenArtifactWithCoords(jreJsZip));
+        }
 
         Xpp3DomConfigValueProvider config = new Xpp3DomConfigValueProvider(merge((Xpp3Dom) plugin.getConfiguration(), mojoExecution.getConfiguration()), expressionEvaluator, repoSession, repositories, repoSystem, extraClasspath, getLog());
 
@@ -388,7 +394,12 @@ public class TestMojo extends AbstractBuildMojo {
                 suite.setDependencies(dependencies);
 
                 // build this new test project normally
-                String testScriptFilename = initialScriptFilename.substring(0, initialScriptFilename.lastIndexOf(".js")) + "-" + testClass + ".js";
+                String testScriptFilename;
+                if(getPlatform().isWasm()) {
+                    testScriptFilename = initialScriptFilename + "-" + testClass + ".js";
+                } else {
+                    testScriptFilename = initialScriptFilename.substring(0, initialScriptFilename.lastIndexOf(".js")) + "-" + testClass + ".js";
+                }
                 PropertyTrackingConfig.ConfigValueProvider overridenConfig = new OverrideConfigValueProvider(config,
                         Collections.singletonMap(
                                 "initialScriptFilename",
@@ -513,6 +524,8 @@ public class TestMojo extends AbstractBuildMojo {
         if ("chrome".equalsIgnoreCase(webdriver)) {
             ChromeOptions chromeOptions = new ChromeOptions();
             chromeOptions.setHeadless(true);
+            // find out how to set this in the pom.xml
+            chromeOptions.addArguments("-js-flags=--experimental-wasm-gc,--experimental-wasm-stringref");
             LoggingPreferences loggingPreferences = new LoggingPreferences();
             loggingPreferences.enable(LogType.BROWSER, Level.ALL);
             chromeOptions.setCapability("goog:loggingPrefs", loggingPreferences);

@@ -64,6 +64,9 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
 
     @Parameter(defaultValue = "com.vertispan.j2cl:jre-wasm:" + Versions.J2CL_VERSION, required = true)
     protected String jreWasmJar;
+
+    @Parameter(defaultValue = "com.vertispan.j2cl:bootstrap-wasm:" + Versions.J2CL_VERSION, required = true)
+    protected String wasmJsBootstrap;
     @Parameter(defaultValue = "com.vertispan.j2cl:jre:zip:jszip:" + Versions.J2CL_VERSION, required = true)
     protected String jreJsZip;
 

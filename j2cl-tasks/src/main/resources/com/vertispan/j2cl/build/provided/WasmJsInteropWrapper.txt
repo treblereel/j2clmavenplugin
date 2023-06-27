@@ -1,0 +1,79 @@
+package %PACKAGE%;
+
+import elemental2.core.ArrayBuffer;
+import elemental2.core.ArrayBufferView;
+import elemental2.dom.Response;
+import elemental2.promise.Promise;
+import elemental2.webassembly.webassembly.Instance;
+import jsinterop.annotations.JsMethod;
+import jsinterop.annotations.JsOverlay;
+import jsinterop.annotations.JsPackage;
+import jsinterop.annotations.JsType;
+import jsinterop.base.Js;
+
+public class %MODULE_NAME%Loader {
+    @JsType(isNative = true, name = "?", namespace = JsPackage.GLOBAL)
+    public interface InstantiateBlockingModuleObjectUnionType {
+        @JsOverlay
+        static InstantiateBlockingModuleObjectUnionType of(Object o) {
+            return Js.cast(o);
+        }
+
+        @JsOverlay
+        default ArrayBuffer asArrayBuffer() {
+            return Js.cast(this);
+        }
+
+        @JsOverlay
+        default ArrayBufferView asArrayBufferView() {
+            return Js.cast(this);
+        }
+
+        @JsOverlay
+        default boolean isArrayBuffer() {
+            return (Object) this instanceof ArrayBuffer;
+        }
+
+        @JsOverlay
+        default boolean isArrayBufferView() {
+            return (Object) this instanceof ArrayBufferView;
+        }
+    }
+
+    @JsType(isNative = true, name = "?", namespace = JsPackage.GLOBAL)
+    public interface InstantiateStreamingUrlOrResponseUnionType {
+        @JsOverlay
+        static InstantiateStreamingUrlOrResponseUnionType of(Object o) {
+            return Js.cast(o);
+        }
+
+        @JsOverlay
+        default Promise<Response> asPromise() {
+            return Js.cast(this);
+        }
+
+        @JsOverlay
+        default String asString() {
+            return Js.asString(this);
+        }
+
+        @JsOverlay
+        default boolean isPromise() {
+            return (Object) this instanceof Promise;
+        }
+
+        @JsOverlay
+        default boolean isString() {
+            return (Object) this instanceof String;
+        }
+    }
+
+    @JsMethod(namespace = "%NAMESPACE%")
+    public static native Instance instantiateBlocking(
+            InstantiateBlockingModuleObjectUnionType moduleObject);
+
+    @JsMethod(namespace = "%NAMESPACE%")
+    public static native Promise<Instance> instantiateStreaming(
+            InstantiateStreamingUrlOrResponseUnionType urlOrResponse);
+
+}

@@ -1,8 +1,6 @@
 package com.vertispan.j2cl.tools;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.j2cl.common.SourceUtils.FileInfo;
-import com.google.j2cl.transpiler.backend.Backend;
 import com.vertispan.j2cl.build.task.BuildLog;
 
 import javax.lang.model.SourceVersion;
@@ -35,9 +33,9 @@ public class Javac {
     StandardJavaFileManager fileManager;
     private DiagnosticCollector<JavaFileObject> listener;
 
-    public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap) throws IOException {
+    public Javac(BuildLog log, File generatedClassesPath, List<File> sourcePaths, List<File> classpath, File classesDirFile, File bootstrap, String platform) throws IOException {
         this.log = log;
-        String platformFlag = "-AtestPlatform=CLOSURE";
+        String platformFlag = "-AtestPlatform=" + platform;
 
 //        for (File file : classpath) {
 //            System.out.println(file.getAbsolutePath() + " " + file.exists() + " " + file.isDirectory());

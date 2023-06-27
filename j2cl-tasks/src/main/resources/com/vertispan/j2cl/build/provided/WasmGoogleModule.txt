@@ -1,0 +1,34 @@
+goog.module("%MODULE_NAME%.j2wasm");
+
+%IMPORTS%
+
+/**
+ * Instantiates the web assembly module.
+ *
+ * @param {string|!Promise<!Response>} urlOrResponse
+ * @return {!Promise<!WebAssembly.Instance>}
+ */
+async function instantiateStreaming(urlOrResponse) {
+    const response =
+        typeof urlOrResponse == "string" ? fetch(urlOrResponse) : urlOrResponse;
+    const {instance} = await WebAssembly.instantiateStreaming(response, getImports());
+    return instance;
+}
+
+/**
+ * Instantiates a web assembly module passing the necessary imports and any
+ * additional import the user might need to provide for their application.
+ *
+ * Use of this function is discouraged. Many browsers require when calling the
+ * WebAssembly constructor that the number of bytes of the module is under a
+ * small threshold, mandating the async functions for all non-trivial apps. This
+ * function can be used in other contexts, such as the D8 command line.
+ *
+ * @param {!BufferSource} moduleObject
+ * @return {!WebAssembly.Instance}
+ */
+function instantiateBlocking(moduleObject) {
+    return new WebAssembly.Instance(new WebAssembly.Module(moduleObject), getImports());
+}
+
+exports = {instantiateStreaming, instantiateBlocking};
