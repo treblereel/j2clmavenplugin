@@ -130,7 +130,7 @@ public class WasmApplicationTask extends TaskFactory {
                 Set<String> locatedEntryPoints = new WasmEntryPointLocator().preprocessFiles(infos);
                 locatedEntryPoints.addAll(declaredEntryPoints);
 
-                Map<String, String> defines = new HashMap<>();
+                Map<String, String> defines = new HashMap<>(configDefines);
                 defines.put("J2WASM_DEBUG", "TRUE");
                 defines.put("jre.strictFpToString", "DISABLED");
                 defines.put("jre.checkedMode", "ENABLED");
@@ -145,6 +145,7 @@ public class WasmApplicationTask extends TaskFactory {
 
                 Problems problems = new Problems();
                 try (OutputUtils.Output output = OutputUtils.initOutput(taskContext.outputPath(), problems)) {
+
                     J2clTranspilerOptions options = J2clTranspilerOptions.newBuilder()
                             .setOutput(output)
                             .setFrontend(Frontend.JDT)
