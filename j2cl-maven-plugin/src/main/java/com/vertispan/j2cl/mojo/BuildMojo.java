@@ -190,7 +190,7 @@ public class BuildMojo extends AbstractBuildMojo {
         //TODO need to be very careful about allowing these to be configurable, possibly should tie them to the "plugin version" aspect of the hash
         //     or stitch them into the module's dependencies, that probably makes more sense...
         List<File> extraClasspath = Arrays.asList(
-                getFileWithMavenCoords(jreJar),
+                getFileWithMavenCoords(getPlatform().isWasm() ? jreWasmJar : jreJar),
                 getFileWithMavenCoords(internalAnnotationsJar),
                 getFileWithMavenCoords(jsinteropAnnotationsJar),
                 getFileWithMavenCoords("com.vertispan.jsinterop:base:" + Versions.VERTISPAN_JSINTEROP_BASE_VERSION)//TODO stop hardcoding this when goog releases a "base" which actually works on both platforms

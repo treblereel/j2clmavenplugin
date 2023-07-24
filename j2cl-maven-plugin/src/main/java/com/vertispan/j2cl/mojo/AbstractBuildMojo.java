@@ -188,6 +188,10 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
             return dependencyReplacements;
         }
         defaultDependencyReplacements.forEach(dependencyReplacement -> dependencyReplacement.resolve(repoSession, repositories, repoSystem));
+        // if we're building for wasm, we need to replace the jsinterop base dependency
+        if(getPlatform().isWasm()) {
+            defaultDependencyReplacements.remove(new DependencyReplacement("com.google.jsinterop:base", "com.vertispan.jsinterop:base:" + Versions.VERTISPAN_JSINTEROP_BASE_VERSION));
+        }
         return defaultDependencyReplacements;
     }
 
@@ -316,8 +320,20 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
                     getLog().info("Removing dependency " + old + ", no replacement");
                     continue;
                 }
+
+                if(getPlatform().isWasm()) {
+                    if(mavenDependency.getGroupId().equals("com.vertispan.jsinterop") && mavenDependency.getArtifactId().equals("base")) {
+                        getLog().info("Removing dependency non compat wasm dep" + old + ", no replacement");
+                        continue;
+                    }
+                }
+
                 getLog().info("Removing dependency " + old + ", replacing with " + mavenDependency);
                 appendDependencies = true;
+            }
+
+            if(getPlatform().isWasm() && mavenDependency.getArtifactId().equals("jre")) {
+                    continue;
             }
 
             String depKey = AbstractBuildMojo.key(mavenDependency);
