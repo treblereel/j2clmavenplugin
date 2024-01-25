@@ -2,10 +2,15 @@ package com.vertispan.j2cl.build.provided;
 
 import com.google.auto.service.AutoService;
 import com.google.j2cl.common.SourceUtils;
+import com.google.javascript.jscomp.CompilationLevel;
 import com.vertispan.j2cl.build.task.*;
+import com.vertispan.j2cl.tools.Closure;
 import com.vertispan.j2cl.tools.J2cl;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.Collections;
@@ -51,6 +56,11 @@ public class J2clTask extends TaskFactory {
 
         File bootstrapClasspath = config.getBootstrapClasspath();
         List<File> extraClasspath = config.getExtraClasspath();
+
+        //*******
+        boolean sourcemapsEnabled = config.getSourcemapsEnabled();
+        Path sourceMapsFolder = sourcemapsEnabled ? prepareSourcesFolder(config, project) : null;
+
         return context -> {
             if (ownJavaSources.getFilesAndHashes().isEmpty()) {
                 return;// nothing to do
@@ -82,6 +92,28 @@ public class J2clTask extends TaskFactory {
             if (!j2cl.transpile(javaSources, nativeSources)) {
                 throw new IllegalStateException("Error while running J2CL");
             }
+
+            if(sourcemapsEnabled) {
+                if(sourceMapsFolder.toFile().exists()) {
+                    FileUtils.deleteDirectory(sourceMapsFolder.toFile());
+                }
+                sourceMapsFolder.toFile().mkdirs();
+                FileUtils.copyDirectory(context.outputPath().toFile(), sourceMapsFolder.toFile());
+            }
         };
+    }
+
+    private Path prepareSourcesFolder(Config config, Project project) {
+        try {
+            Path initialScriptFile = config.getWebappDirectory().resolve(config.getInitialScriptFilename());
+            Path outputDir = initialScriptFile.getParent();
+            Files.createDirectories(outputDir);
+            Path destSourcesDir = outputDir.resolve(Closure.SOURCES_DIRECTORY_NAME);
+            Files.createDirectories(destSourcesDir);
+            Path dist = destSourcesDir.resolve(project.getKey().replaceAll("\\.","-").replaceAll(":","-"));
+            return dist;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
