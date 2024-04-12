@@ -31,6 +31,12 @@
             <groupId>com.vertispan.j2cl</groupId>
             <artifactId>gwt-incompatible-stripper</artifactId>
             <version>${j2cl.version}</version>
+            <exclusions>
+                 <exclusion>
+                     <groupId>com.vertispan.j2cl.external</groupId>
+                     <artifactId>org.eclipse.jdt.core</artifactId>
+                 </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.vertispan.j2cl</groupId>
@@ -75,6 +81,34 @@
             <groupId>com.vertispan.j2cl</groupId>
             <artifactId>build-caching</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+             <groupId>org.eclipse.jdt</groupId>
+             <artifactId>org.eclipse.jdt.core</artifactId>
+             <version>3.34.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.platform</groupId>
+                    <artifactId>org.eclipse.osgi</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.platform</groupId>
+                    <artifactId>org.eclipse.equinox.common</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.vertispan.j2cl.external</groupId>
+            <artifactId>org.eclipse.osgi</artifactId>
+            <version>${j2cl.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.platform</groupId>
+            <artifactId>org.eclipse.equinox.common</artifactId>
+            <version>3.16.200</version>
         </dependency>
 
         <dependency>
