@@ -61,7 +61,7 @@ public class JdtBytecodeTask extends BytecodeTask {
                 .stream()
                 //.filter(dependency -> !dependency.isJsZip())
                 .forEach(dependency -> {
-                    System.out.println("Dependency: " + dependency.getKey());
+                    //System.out.println("Dependency: " + dependency.getKey());
                 });
 
         List<Input> bytecodeClasspath = scope(project.getDependencies()
@@ -142,23 +142,16 @@ public class JdtBytecodeTask extends BytecodeTask {
                 File generatedClassesDir = getGeneratedClassesDir(context);
                 File classOutputDir = context.outputPath().toFile();
 
-
-                sourcePaths.forEach(s -> {
-                    System.out.println("Source Path: " + s.getAbsolutePath());
-                });
-
-                classpathDirs.forEach(f -> {
-                    System.out.println("Classpath Dir: " + f.getAbsolutePath());
-                });
-
-
+                System.out.println("started  : " + project.getKey());
                 Jdt javac = new Jdt(context, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, aptProcessors);
+                System.out.println("finished : " + project.getKey());
+
 
                 // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
                 //      automatically relativized?
                 List<SourceUtils.FileInfo> sources = inputSources.getFilesAndHashes()
                         .stream()
-                        .filter(p -> !p.getAbsolutePath().toFile().getName().equals("moduleinfo.java"))
+                        .filter(p -> !p.getAbsolutePath().toFile().getName().equals("module-info.java"))
                         .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
                         .collect(Collectors.toUnmodifiableList());
 

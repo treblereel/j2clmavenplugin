@@ -48,7 +48,7 @@ public class BytecodeTask extends TaskFactory {
 
     @Override
     public String getTaskName() {
-        return "default";
+        return "javac";
     }
 
     @Override
@@ -161,10 +161,7 @@ public class BytecodeTask extends TaskFactory {
         return context.outputPath().toFile();
     }
 
-    private Set<String> maybeAddInReactorAptProcessor(List<Input> reactorProcessors, Set<String> processors) {
-        if (processors.isEmpty()) {
-            return Collections.emptySet();
-        }
+    public Set<String> maybeAddInReactorAptProcessor(List<Input> reactorProcessors, Set<String> processors) {
         Set<String> existingProcessors = new HashSet<>(processors);
         reactorProcessors.forEach(input -> input.getFilesAndHashes().forEach(file -> {
             try (Stream<String> lines = Files.lines(file.getAbsolutePath())) {

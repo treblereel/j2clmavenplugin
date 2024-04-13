@@ -47,6 +47,9 @@ public class MyProcessor extends AbstractProcessor {
 
         Filer filer = processingEnv.getFiler();
         elements.stream().filter(e -> e.getKind().isInterface()).forEach(type -> {
+
+            System.out.println("Found annotated type: " + type);
+
             //emit a new class for that type, with no-arg string methods
             try {
                 ClassName origClassName = ClassName.get((TypeElement) type);
@@ -79,7 +82,9 @@ public class MyProcessor extends AbstractProcessor {
                     }
                 }
                 JavaFile newFile = JavaFile.builder(origClassName.packageName(), builder.build()).build();
+                System.out.println("writing: " + origClassName.simpleName() + "_Impl");
                 newFile.writeTo(filer);
+                System.out.println("wrote: " + origClassName.simpleName() + "_Impl");
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
