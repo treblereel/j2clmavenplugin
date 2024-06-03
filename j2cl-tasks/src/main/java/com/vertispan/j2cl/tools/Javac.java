@@ -59,9 +59,9 @@ public class Javac {
         if (generatedClassesPath == null) {
             javacOptions.add("-proc:none");
         }
-        if (SourceVersion.latestSupported().compareTo(SourceVersion.RELEASE_8) > 0) {
-            //java 9+
-            javacOptions.add("--release=8");
+        if (SourceVersion.latestSupported().compareTo(SourceVersion.RELEASE_11) > 0) {
+            //java 11+
+            javacOptions.add("--release=11");
         }
         if (!processors.isEmpty()) {
             javacOptions.add("-processor");

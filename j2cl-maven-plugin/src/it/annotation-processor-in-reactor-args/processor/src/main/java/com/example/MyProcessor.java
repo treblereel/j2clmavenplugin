@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class MyProcessor extends AbstractProcessor {
     @Override
     public Set<String> getSupportedAnnotationTypes() {
