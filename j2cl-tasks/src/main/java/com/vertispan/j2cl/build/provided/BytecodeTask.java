@@ -18,6 +18,7 @@ package com.vertispan.j2cl.build.provided;
 import com.google.auto.service.AutoService;
 import com.google.j2cl.common.SourceUtils;
 import com.vertispan.j2cl.build.task.*;
+import com.vertispan.j2cl.tools.J2CLModuleParser;
 import com.vertispan.j2cl.tools.Javac;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -146,10 +148,19 @@ public class BytecodeTask extends TaskFactory {
                 File classOutputDir = context.outputPath().toFile();
                 Javac javac = new Javac(context, generatedClassesDir, sourcePaths, classpathDirs, classOutputDir, bootstrapClasspath, aptProcessors);
 
+                // Find the super-source path, if it exists
+                Optional<Path> superSource = J2CLModuleParser.getSuperSourcePath(sourcePaths);
+                Stream<? extends CachedPath> inputSourcesStream = inputSources.getFilesAndHashes()
+                        .stream();
+
+                // Exclude super-source files from compilation
+                if(project.hasSourcesMapped() && superSource.isPresent()) {
+                    inputSourcesStream = inputSourcesStream.filter(p -> !p.getSourcePath().startsWith(superSource.get()));
+                }
+
                 // TODO convention for mapping to original file paths, provide FileInfo out of Inputs instead of Paths,
                 //      automatically relativized?
-                List<SourceUtils.FileInfo> sources = inputSources.getFilesAndHashes()
-                        .stream()
+                List<SourceUtils.FileInfo> sources = inputSourcesStream
                         .map(p -> SourceUtils.FileInfo.create(p.getAbsolutePath().toString(), p.getSourcePath().toString()))
                         .collect(Collectors.toUnmodifiableList());
 

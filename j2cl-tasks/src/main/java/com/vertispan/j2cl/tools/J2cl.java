@@ -16,6 +16,7 @@
 package com.vertispan.j2cl.tools;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.j2cl.common.OutputUtils;
 import com.google.j2cl.common.SourceUtils;
 import com.google.j2cl.common.Problems;
@@ -63,9 +64,10 @@ public class J2cl {
                     .setOutput(output)
                     .setSources(sourcesToCompile)
                     .setNativeSources(nativeSources)
+                    .setKotlinCommonSources(Collections.emptyList())
                     .setKotlincOptions(ImmutableList.of())
-                    .setWasmEntryPointStrings(ImmutableList.of())
-                    .build(problems);
+                    .setWasmEntryPoints(ImmutableSet.of())
+                    .build();
 
             log.debug(options.toString());
 
