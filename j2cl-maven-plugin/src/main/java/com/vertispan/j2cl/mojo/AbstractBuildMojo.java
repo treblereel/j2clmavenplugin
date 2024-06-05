@@ -93,6 +93,12 @@ public abstract class AbstractBuildMojo extends AbstractCacheMojo {
     @Parameter(defaultValue = "com.vertispan.j2cl:junit-annotations:" + Versions.J2CL_VERSION, required = true)
     protected String junitAnnotations;
 
+    @Parameter(defaultValue = "com.vertispan.j2cl:junit-runtime:" + Versions.J2CL_VERSION, required = true)
+    protected String runtime;
+
+    @Parameter(defaultValue = "com.vertispan.j2cl:junit-runtime:zip:jszip:" + Versions.J2CL_VERSION, required = true)
+    protected String runtimeJsZip;
+
     // optional, if not specified, we'll use the defaults
     @Parameter
     protected List<DependencyReplacement> dependencyReplacements;

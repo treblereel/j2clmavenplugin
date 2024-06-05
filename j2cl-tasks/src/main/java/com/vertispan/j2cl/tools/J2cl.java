@@ -51,7 +51,9 @@ public class J2cl {
                 )
                 .setEmitReadableLibraryInfo(false)
                 .setEmitReadableSourceMap(false)
-                .setGenerateKytheIndexingMetadata(false);
+                .setGenerateKytheIndexingMetadata(false)
+                .setForbiddenAnnotations(ImmutableList.of());
+
     }
 
     public boolean transpile(List<SourceUtils.FileInfo> sourcesToCompile, List<SourceUtils.FileInfo> nativeSources) {
