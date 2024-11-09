@@ -64,10 +64,10 @@ public class J2cl {
                     .setOutput(output)
                     .setSources(sourcesToCompile)
                     .setNativeSources(nativeSources)
-                    .setKotlinCommonSources(Collections.emptyList())
+                    //.setKotlinCommonSources(Collections.emptyList())
                     .setKotlincOptions(ImmutableList.of())
-                    .setWasmEntryPoints(ImmutableSet.of())
-                    .build();
+                    .setWasmEntryPointStrings(ImmutableList.of())
+                    .build(problems);
 
             log.debug(options.toString());
 
